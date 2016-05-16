@@ -1,6 +1,6 @@
 module TransformUtils
 
-import Base: convert, promote_rule
+import Base: convert, promote_rule, *
 
 export
   Quaternion,
