@@ -7,6 +7,8 @@ export
   AxisAngle,
   SO3,
   so3,
+  SE3,
+  Euler,
   skew,
   *,
   normalize!,
@@ -27,6 +29,16 @@ export
   rightJacExmapinv
 
 
+
+  function skew(v::Array{Float64,1})
+      S = zeros(3,3)
+      S[1,:] = [0., -v[3], v[2]]
+      S[2,:] = [v[3],0.,-v[1]]
+      S[3,:] = [-v[2],v[1],0.]
+      return S
+  end
+
+
 type Quaternion
     s::Float64
     v::Array{Float64,1}
@@ -39,10 +51,16 @@ end
 
 type SO3
     R::Array{Float64,2}
+    SO3() = new()
+    SO3(dummy::Float64) = new(eye(3))
+    SO3(r::Array{Float64,2}) = new(r)
 end
 
 type so3
     S::Array{Float64,2}
+    so3() = new(eye(3)) # TODO fix and replace previous uses of this
+    so3(v::Vector{Float64}) = new(skew(v))
+    so3(S::Array{Float64,2}) = new(S)
 end
 
 type Euler
@@ -51,34 +69,17 @@ type Euler
     Y::Float64
 end
 
-# type Rigid6DOF
-#     rot::Quaternion
-#     trl::Array{Float64,1}
-# end
-#
-# type Dynamic6DOF
-#     rot::Quaternion
-#     trl::Array{Float64,1}
-#     rate::Array{Float64,1}
-#     vel::Array{Float64,1}
-# end
-#
-# type PoseSE3
-#     utime::Int64
-#     name::UTF8String
-#     mu::Rigid6DOF
-#     cov::Array{Float64,2}
-#     data::Dict{UTF8String,Any}
-# end
-#
-# type DynPose3
-#     utime::Int64
-#     name::UTF8String
-#     mu::Dynamic6DOF
-#     imu::IMUComp
-#     cov::Array{Float64,2}
-#     data::Dict{UTF8String,Any}
-# end
+type SE3
+  R::SO3
+  t::Vector{Float64}
+  SE3() = new()
+  SE3(dummy::Float64) = new(SO3(0.0), zeros(3))
+  SE3(r::SO3, t::Vector{Float64}) = new(r,t)
+end
+
+function *(a::SE3, b::SE3)
+  return SE3(SO3(a.R.R*b.R.R), vec(a.R.R*b.t + a.t))
+end
 
 function normalize!(q::Quaternion, tol=0.00001)
     mag2 = sum(q.v.^2) + q.s^2
@@ -138,13 +139,6 @@ function q_conj(q::Quaternion)
     return qq
 end
 
-function skew(v::Array{Float64,1})
-    S = zeros(3,3)
-    S[1,:] = [0., -v[3], v[2]]
-    S[2,:] = [v[3],0.,-v[1]]
-    S[3,:] = [-v[2],v[1],0.]
-    return S
-end
 
 function convert(::Type{Quaternion}, v::Array{Float64,1})
     return Quaternion(v[1],v[2:4])
@@ -272,6 +266,10 @@ function convert(::Type{Euler}, q::Quaternion)
   psi = -atan2(2.0*(b*c - d*a),1.0-2.0*(c^2+d^2)); # -atan2(2.0*(b*c - d*a), a*a + b*b - c*c - d*d)
 
   return  Euler(phi,theta,psi)
+end
+
+function convert(::Type{Euler}, R::SO3)
+  convert(Euler, convert(Quaternion, R))
 end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
