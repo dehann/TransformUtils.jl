@@ -11,6 +11,8 @@ export
   SE3,
   Euler,
   skew,
+  vee!
+  vee,
   *,
   normalize!,
   normalize,
@@ -20,15 +22,21 @@ export
   rotate!,
   rotate,
   wrapRad,
+  logmap,
+  rightJacExmap,
+  rightJacExmapinv,
+  # Should be good to go
+  veeAngleAxis,
+  veeQuaternion,
+
+  # basic Taylor exported to try against Pade version in expm
   expmOwn,
   expmOwn1,
   expmOwnT,
   expmOwn2,
   expmOwn3,
   expmOwn4,
-  logmap,
-  rightJacExmap,
-  rightJacExmapinv,
+
 
   # needs refactoring
   SE2,
@@ -45,21 +53,22 @@ export
       return S
   end
 
+typealias FloatInt Union{Float64,Int}
 
 type Quaternion
     s::Float64
     v::Array{Float64,1}
     Quaternion() = new()
-    Quaternion(s::Union{Float64,Int}) = new(1.0,zeros(3))
-    Quaternion(s::Union{Float64,Int},v::Array{Union{Float64,Int},1}) = new(s,v)
+    Quaternion(s::FloatInt) = new(1.0,zeros(3))
+    Quaternion(s::FloatInt,v::Array{FloatInt,1}) = new(s,v)
 end
 
 type AngleAxis
     theta::Float64
     ax::Array{Float64,1}
     AngleAxis() = new()
-    AngleAxis(s::Union{Float64,Int}) = new(1.0,zeros(3))
-    AngleAxis(s::Union{Float64,Int},v::Array{Union{Float64,Int},1}) = new(s,v)
+    AngleAxis(s::FloatInt) = new(1.0,zeros(3))
+    AngleAxis(s::FloatInt,v::Array{FloatInt,1}) = new(s,v)
 end
 
 typealias AxisAngle AngleAxis
@@ -67,14 +76,14 @@ typealias AxisAngle AngleAxis
 type SO3
     R::Array{Float64,2}
     SO3() = new()
-    SO3(dummy::Float64) = new(eye(3))
+    SO3(dummy::FloatInt) = new(eye(3))
     SO3(r::Array{Float64,2}) = new(r)
 end
 
 type so3
     S::Array{Float64,2}
     so3() = new()
-    so3(s::Union{Float64,Int}) = new(zeros(3,3))
+    so3(s::FloatInt) = new(zeros(3,3))
     so3(v::Vector{Float64}) = new(skew(v))
     so3(S::Array{Float64,2}) = new(S)
 end
@@ -83,15 +92,21 @@ type Euler
     R::Float64
     P::Float64
     Y::Float64
+    Euler() = new()
+    Euler(s::FloatInt) = new(0.0,0.0,0.0)
+    Euler(r::FloatInt,p::FloatInt,y::FloatInt) = new(r,p,y)
 end
+
 
 type SE3
   R::SO3
   t::Vector{Float64}
   SE3() = new()
-  SE3(dummy::Float64) = new(SO3(0.0), zeros(3))
-  SE3(r::SO3, t::Vector{Float64}) = new(r,t)
-  SE3(v::Vector{Float64}) = new(convert(SO3,Euler(v[4],v[5],v[6])),v[1:3])
+  SE3(dummy::FloatInt) = new(SO3(0.0), zeros(3))
+  SE3(r::SO3, t::Vector{FloatInt}) = new(r,t)
+  SE3(v::Vector{FloatInt}, E::Euler = new(v[1:3],convert(SO3,E))
+  SE3(v::Vector{FloatInt}, aa::AngleAxis = new(v[1:3],convert(SO3,aa))
+  SE3(v::Vector{FloatInt}, q::Quaternion = new(v[1:3],convert(SO3,q))
 end
 
 function normalize!(q::Quaternion, tol=0.00001)
@@ -280,6 +295,10 @@ function convert(::Type{Euler}, q::Quaternion)
   return  Euler(phi,theta,psi)
 end
 
+function convert(::Type{so3}, G::SO3)
+  so3(logmap(G))
+end
+
 function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end
@@ -328,49 +347,6 @@ function rotate(q1::Quaternion, v1::Array{Float64,1})
     return vv1
 end
 
-vee(alg::so3) = [-alg.S[2,3], alg.S[1,3], -alg.S[1,2]]
-
-#
-# function +(p1::Rigid6DOF, p2::Rigid6DOF)
-#     t = rotate(p1.rot, p2.trl) + p1.trl
-#     return Rigid6DOF(p1.rot*p2.rot,t)
-# end
-#
-# function +(p1::PoseSE3, p2::PoseSE3)
-#     return PoseSE3(p1.utime+p2.utime,
-#                    "+",
-#                    p1.mu+p2.mu,
-#                    p1.cov + p2.cov,
-#                    Dict())
-# end
-#
-# function makePose3(q::Quaternion=Quaternion(1.,zeros(3)), t::Array{Float64,1}=[0.,0,0]; ut=0, name="pose", cov=0.1*eye(6))
-#     return PoseSE3(ut,
-#                    name,
-#                    Rigid6DOF( q, t ),
-#                    cov,
-#                    Dict())
-# end
-
-# function makeDynPose3(q::Quaternion=Quaternion(1.,zeros(3)), t::Array{Float64,1}=[0.,0,0]; ut=0, name="pose", cov=0.1*eye(18))
-#     return DynPose3(ut,
-#                     name,
-#                     Dynamic6DOF( q, t, [0.,0,0], [0.,0,0] ),
-#                     IMUComp([0.,0,0],[0.,0,0]),
-#                     cov,
-#                     Dict())
-# end
-#
-# function wTo(p::PoseSE3)
-#     T = eye(4)
-#     T[1:3,1:3] =  convert(SO3, p.mu.rot).R
-#     T[1:3,4] = p.mu.trl
-#     return T
-# end
-#
-# function oTw(p::PoseSE3)
-#     return wTo(p) \ eye(4)
-# end
 
 function expmOwn(alg::so3)
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
@@ -464,11 +440,8 @@ function expmOwn4(M::Array{Float64,2})
 end
 
 function convert(::Type{SO3}, alg::so3)
-  return SO3(expmOwn4(alg.S))
+  return SO3(expm(alg.S))
 end
-
-
-
 
 
 function wrapRad(th::Float64)
@@ -481,8 +454,56 @@ function wrapRad(th::Float64)
   return th
 end
 
-# TODO -- needs refactoring
-R(th) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
+R(th::Float64) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
+
+function vee!(rv::Vector{Float64,1}, alg::so3)
+  rv[1] = -alg.S[2,3]
+  rv[2] = alg.S[1,3]
+  rv[3] = -alg.S[1,2]
+  nothing
+end
+
+function vee(alg::so3)
+   rv = zeros(3)
+   vee!(rv, alg)#[-alg.S[2,3], alg.S[1,3], -alg.S[1,2]]
+   return rv
+end
+
+# vectorize SE3 group to translation and AngleAxis numbers
+# dim7 out: [xyz, theta, axyz]
+function veeAngleAxis(G::SE3)
+  aa = convert(AngleAxis, G.R)
+  v = zeros(7)
+  v[1:3] = G.t
+  v[4] = aa.theta
+  v[5:7] = aa.ax[:]
+  return v
+end
+
+# vectorize SE3 group to translation and Quaternion numbers
+# dim7 out: [xyz, cos(th/2), sin(th/2)xyz]
+function veeQuaternion(G::SE3)
+  q = convert(Quaternion, G.R)
+  v = zeros(7)
+  v[1:3] = G.t
+  v[4] = q.s
+  v[5:7] = q.v[:]
+  return v
+end
+
+
+
+# TODO -- Change to type and overload the operators
+# TODO -- uncomment
+# function vee!(rv::Vector{Float64,1},T::SE2)
+#   rv[1] = T.t[1]
+#   rv[2] = T.t[2]
+#   rv[3] = wrapRad(atan2(-T.R.R[1,2], T.R.R[1,1]))
+#   nothing
+# end
+# function *(a::SE2, b::SE2)
+#   return SE2(R.R*b.R, vec(a.R.R*b.t + a.t))
+# end
 
 function SE2(X::Array{Float64,1})
     T = eye(3)
@@ -501,8 +522,6 @@ end
 
 function se2vee(T::Array{Float64,2})
     retval = zeros(3)
-    #retval[1:2,1] = T[1:2,3]
-    #retval[3,1] = wrapRad(atan2(-T[1,2], T[1,1]))
     se2vee!(retval, T)
     return retval
 end
