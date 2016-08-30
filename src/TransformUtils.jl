@@ -94,10 +94,6 @@ type SE3
   SE3(v::Vector{Float64}) = new(convert(SO3,Euler(v[4],v[5],v[6])),v[1:3])
 end
 
-function *(a::SE3, b::SE3)
-  return SE3(SO3(a.R.R*b.R.R), vec(a.R.R*b.t + a.t))
-end
-
 function normalize!(q::Quaternion, tol=0.00001)
     mag2 = sum(q.v.^2) + q.s^2
     if abs(mag2 - 1.0) > tol
@@ -117,21 +113,15 @@ function normalize(v::Array{Float64,1})
   return v / norm(v)
 end
 
-# function *(q1::Quaternion, q2::Quaternion)
-#     # w = q1.s * q2.s    - q1.v[1] * q2.v[1] - q1.v[2] * q2.v[2] - q1.v[3] * q2.v[3]
-#     # x = q1.s * q2.v[1] + q1.v[1] * q2.s    + q1.v[2] * q2.v[3] - q1.v[3] * q2.v[2]
-#     # y = q1.s * q2.v[2] + q1.v[2] * q2.s    + q1.v[3] * q2.v[1] - q1.v[1] * q2.v[3]
-#     # z = q1.s * q2.v[3] + q1.v[3] * q2.s    + q1.v[1] * q2.v[2] - q1.v[2] * q2.v[1]
-#     w = q1.s * q2.s    - q1.v[1] * q2.v[1] - q1.v[2] * q2.v[2] - q1.v[3] * q2.v[3]
-#     x = q1.v[1] * q2.s + q1.s * q2.v[1]    - q1.v[3] * q2.v[2] + q1.v[2] * q2.v[3]
-#     y = q1.v[2] * q2.s + q1.v[3] * q2.v[1] + q1.s * q2.v[2]    - q1.v[1] * q2.v[3]
-#     z = q1.v[3] * q2.s - q1.v[2] * q2.v[1] + q1.v[1] * q2.v[2] - q1.s * q2.v[3]
-#
-#     if (w < 0.0)
-#       return Quaternion(-w, -[x; y; z])
-#     end
-#     return Quaternion(w, [x; y; z])
-# end
+
+function *(a::SO3, b::SO3)
+  return SO3(a.R*b.R)
+end
+
+function *(a::SE3, b::SE3)
+  return SE3(R.R*b.R, vec(a.R.R*b.t + a.t))
+end
+
 
 function *(q1::Quaternion, q2::Quaternion)
   ee  = [q1.s; q1.v] * [q2.s; q2.v]'
