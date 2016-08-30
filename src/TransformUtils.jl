@@ -4,6 +4,7 @@ import Base: convert, promote_rule, *
 
 export
   Quaternion,
+  AngleAxis,
   AxisAngle,
   SO3,
   so3,
@@ -48,12 +49,20 @@ export
 type Quaternion
     s::Float64
     v::Array{Float64,1}
+    Quaternion() = new()
+    Quaternion(s::Union{Float64,Int}) = new(1.0,zeros(3))
+    Quaternion(s::Union{Float64,Int},v::Array{Union{Float64,Int},1}) = new(s,v)
 end
 
-type AxisAngle
+type AngleAxis
     theta::Float64
     ax::Array{Float64,1}
+    AngleAxis() = new()
+    AngleAxis(s::Union{Float64,Int}) = new(1.0,zeros(3))
+    AngleAxis(s::Union{Float64,Int},v::Array{Union{Float64,Int},1}) = new(s,v)
 end
+
+typealias AxisAngle AngleAxis
 
 type SO3
     R::Array{Float64,2}
@@ -64,7 +73,8 @@ end
 
 type so3
     S::Array{Float64,2}
-    so3() = new(eye(3)) # TODO fix and replace previous uses of this
+    so3() = new()
+    so3(s::Union{Float64,Int}) = new(zeros(3,3))
     so3(v::Vector{Float64}) = new(skew(v))
     so3(S::Array{Float64,2}) = new(S)
 end
@@ -151,7 +161,7 @@ function convert(::Type{Quaternion}, v::Array{Float64,1})
     return Quaternion(v[1],v[2:4])
 end
 
-function convert(::Type{Quaternion}, aa::AxisAngle)
+function convert(::Type{Quaternion}, aa::AngleAxis)
     v = normalize(aa.ax)
     theta = aa.theta/2
     w = cos(theta)
@@ -161,12 +171,12 @@ function convert(::Type{Quaternion}, aa::AxisAngle)
     return Quaternion(w, [x, y, z])
 end
 
-function convert(::Type{AxisAngle}, q::Quaternion)
+function convert(::Type{AngleAxis}, q::Quaternion)
     theta = acos(q.s) * 2.0
     if norm(q.v)==0
-      return AxisAngle(theta, [1.,0,0])
+      return AngleAxis(theta, [1.,0,0])
     end
-    return AxisAngle(theta, normalize(q.v))
+    return AngleAxis(theta, normalize(q.v))
 end
 
 function convert(::Type{SO3}, q::Quaternion)
@@ -254,9 +264,14 @@ function convert(::Type{Quaternion}, S::SO3)
   return q
 end
 
-function convert(::Type{SO3}, aa::AxisAngle)
+function convert(::Type{SO3}, aa::AngleAxis)
   convert(SO3,convert(Quaternion, aa))
 end
+
+function convert(::Type{AngleAxis}, s::SO3)
+  convert(AngleAxis, convert(Quaternion, s))
+end
+
 
 function convert(::Type{Euler}, q::Quaternion)
   #Function to convert quaternion to Euler angles, from Titterton and Weston
@@ -278,6 +293,37 @@ end
 function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end
+
+function convert(::Type{Quaternion}, E::Euler)
+  # Using fixed frame rotation scheme, as used in MIT libbot
+  q = zeros(4)
+
+  halfroll = E.R/2.0;
+  halfpitch = E.P/2.0;
+  halfyaw = E.Y/2.0;
+
+  sin_r2 = sin (halfroll);
+  sin_p2 = sin (halfpitch);
+  sin_y2 = sin (halfyaw);
+
+  cos_r2 = cos (halfroll);
+  cos_p2 = cos (halfpitch);
+  cos_y2 = cos (halfyaw);
+
+  q[1] = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
+  q[2] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
+  q[3] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
+  q[4] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
+
+  q = q./norm(q);
+
+  # Enforce positive scalar quaternions following conversion from Euler angles
+  if (q[1]<0)
+    q = -q;
+  end
+  return Quaternion(q[1],q[2:4])
+end
+
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
