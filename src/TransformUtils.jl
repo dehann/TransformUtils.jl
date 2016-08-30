@@ -11,7 +11,7 @@ export
   SE3,
   Euler,
   skew,
-  vee!
+  vee!,
   vee,
   *,
   normalize!,
@@ -104,9 +104,9 @@ type SE3
   SE3() = new()
   SE3(dummy::FloatInt) = new(SO3(0.0), zeros(3))
   SE3(r::SO3, t::Vector{FloatInt}) = new(r,t)
-  SE3(v::Vector{FloatInt}, E::Euler = new(v[1:3],convert(SO3,E))
-  SE3(v::Vector{FloatInt}, aa::AngleAxis = new(v[1:3],convert(SO3,aa))
-  SE3(v::Vector{FloatInt}, q::Quaternion = new(v[1:3],convert(SO3,q))
+  SE3(v::Vector{FloatInt}, E::Euler) = new(v[1:3],convert(SO3,E))
+  SE3(v::Vector{FloatInt}, aa::AngleAxis) = new(v[1:3],convert(SO3,aa))
+  SE3(v::Vector{FloatInt}, q::Quaternion) = new(v[1:3],convert(SO3,q))
 end
 
 function normalize!(q::Quaternion, tol=0.00001)
@@ -456,7 +456,7 @@ end
 
 R(th::Float64) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
 
-function vee!(rv::Vector{Float64,1}, alg::so3)
+function vee!(rv::Vector{Float64}, alg::so3)
   rv[1] = -alg.S[2,3]
   rv[2] = alg.S[1,3]
   rv[3] = -alg.S[1,2]
