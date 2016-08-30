@@ -16,6 +16,4 @@ Tests are still pending, but the code has been used quite a lot in previous proj
 
 ## Install
 
-Pending pull request to JuliaLang/METADATA
-
     Pkg.add("TransformUtils")
