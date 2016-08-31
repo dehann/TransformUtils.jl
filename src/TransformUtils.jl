@@ -60,7 +60,7 @@ type Quaternion
     v::Array{Float64,1}
     Quaternion() = new()
     Quaternion(s::FloatInt) = new(1.0,zeros(3))
-    Quaternion(s::FloatInt,v::Array{FloatInt,1}) = new(s,v)
+    Quaternion(s::Float64,v::Array{Float64,1}) = new(s,v)
 end
 
 type AngleAxis
@@ -311,13 +311,13 @@ function convert(::Type{Quaternion}, E::Euler)
   halfpitch = E.P/2.0;
   halfyaw = E.Y/2.0;
 
-  sin_r2 = sin (halfroll);
-  sin_p2 = sin (halfpitch);
-  sin_y2 = sin (halfyaw);
+  sin_r2 = sin(halfroll);
+  sin_p2 = sin(halfpitch);
+  sin_y2 = sin(halfyaw);
 
-  cos_r2 = cos (halfroll);
-  cos_p2 = cos (halfpitch);
-  cos_y2 = cos (halfyaw);
+  cos_r2 = cos(halfroll);
+  cos_p2 = cos(halfpitch);
+  cos_y2 = cos(halfyaw);
 
   q[1] = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
   q[2] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
