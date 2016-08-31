@@ -11,4 +11,4 @@ script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.test("TransformUtils"; coverage=true)'
 after_success:
-  - julia -e 'cd(Pkg.dir("IncrementalInference")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'cd(Pkg.dir("TransformUtils")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
