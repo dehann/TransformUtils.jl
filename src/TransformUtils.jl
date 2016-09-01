@@ -64,7 +64,7 @@ type Quaternion
     v::Array{Float64,1}
     Quaternion() = new()
     Quaternion(s::FloatInt) = new(1.0,zeros(3))
-    Quaternion(s::Float64,v::Array{Float64,1}) = new(s,v)
+    Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
 type AngleAxis
@@ -149,13 +149,16 @@ function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
 end
 
-compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*T(b)).R-eye(3)) < tol ? true : false
+compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*T(b)).R-eye(3)) < tol
 
 function compare(a::SE3, b::SE3; tol::Float64=1e-14)
   norm(a.t-b.t) < tol ? nothing : return false
   return compare(a.R,b.R)
 end
-
+function compare(a::Quaternion, b::Quaternion; tol::Float64=1e-14)
+  qiq = a*q_conj(b)
+  return tol <= qiq.s <= 1.0 && norm(qiq.v) < tol
+end
 
 function *(q1::Quaternion, q2::Quaternion)
   ee  = [q1.s; q1.v] * [q2.s; q2.v]'

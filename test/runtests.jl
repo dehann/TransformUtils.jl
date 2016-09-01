@@ -1,17 +1,22 @@
 using TransformUtils
 using Base.Test
 
+print("[TEST] comparison functions... ")
+@test compare(Quaternion(0),Quaternion(0))
+@test !compare(Quaternion(0),Quaternion(0,[1;0;0]))
+@test compare(SO3(0),SO3(0))
+println("[SUCCESS]")
+
 print("[TEST] trivial case quaterion -> SO3 -> Euler -> quaternion... ")
 q = Quaternion(0)
 R = convert(SO3, q)
 E = convert(Euler, R)
 qtest = convert(Quaternion, E)
-qiq = q*q_conj(qtest)
 
-@test 0.99 <= qiq.s <= 1.0 && norm(qiq.v) < 1e-14
+@test compare(q,qtest)
 println("[SUCCESS]")
 
-print("[TEST] basic SE3 mechanics and comparisons... ")
+print("[TEST] basic SE3 mechanics... ")
 # SE3 tests
 a = SE3([0;0;0],SO3(0))
 b = SE3([1;0;0],SO3(0))
