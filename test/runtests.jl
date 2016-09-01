@@ -21,4 +21,7 @@ c = a*b
 
 ap = SE3(a.t, a.R*so3(0.1*randn(3)))
 @test !compare(ap,a)
+
+back = ap*b*SE3(zeros(3),T(ap.R))
+@test compare(SO3(0),back.R)
 println("[SUCCESS]")
