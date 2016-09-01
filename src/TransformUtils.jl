@@ -14,6 +14,8 @@ export
   vee!,
   vee,
   *,
+  T,
+  compare,
   normalize!,
   normalize,
   q_conj,
@@ -54,6 +56,8 @@ export
   end
 
 typealias FloatInt Union{Float64,Int}
+typealias VectorFloatInt Union{Vector{Float64},Vector{Int}}
+
 
 type Quaternion
     s::Float64
@@ -68,7 +72,7 @@ type AngleAxis
     ax::Array{Float64,1}
     AngleAxis() = new()
     AngleAxis(s::FloatInt) = new(1.0,zeros(3))
-    AngleAxis(s::FloatInt,v::Array{FloatInt,1}) = new(s,v)
+    AngleAxis(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
 typealias AxisAngle AngleAxis
@@ -84,7 +88,7 @@ type so3
     S::Array{Float64,2}
     so3() = new()
     so3(s::FloatInt) = new(zeros(3,3))
-    so3(v::Vector{Float64}) = new(skew(v))
+    so3(v::VectorFloatInt) = new(skew(v))
     so3(S::Array{Float64,2}) = new(S)
 end
 
@@ -103,10 +107,10 @@ type SE3
   t::Vector{Float64}
   SE3() = new()
   SE3(dummy::FloatInt) = new(SO3(0.0), zeros(3))
-  SE3(r::SO3, t::Vector{FloatInt}) = new(r,t)
-  SE3(v::Vector{FloatInt}, E::Euler) = new(v[1:3],convert(SO3,E))
-  SE3(v::Vector{FloatInt}, aa::AngleAxis) = new(v[1:3],convert(SO3,aa))
-  SE3(v::Vector{FloatInt}, q::Quaternion) = new(v[1:3],convert(SO3,q))
+  SE3(t::VectorFloatInt, r::SO3) = new(r,t)
+  SE3(v::VectorFloatInt, E::Euler) = new(v[1:3],convert(SO3,E))
+  SE3(v::VectorFloatInt, aa::AngleAxis) = new(v[1:3],convert(SO3,aa))
+  SE3(v::VectorFloatInt, q::Quaternion) = new(v[1:3],convert(SO3,q))
 end
 
 function normalize!(q::Quaternion, tol=0.00001)
@@ -128,13 +132,28 @@ function normalize(v::Array{Float64,1})
   return v / norm(v)
 end
 
+T(a::SO3) = SO3(a.R')
 
 function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
 end
 
+function *(a::SO3, b::so3)
+  return SO3(a*convert(SO3,b))
+end
+function *(a::so3, b::SO3)
+  return SO3(convert(SO3,a)*b)
+end
+
 function *(a::SE3, b::SE3)
-  return SE3(R.R*b.R, vec(a.R.R*b.t + a.t))
+  return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
+end
+
+compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*T(b)).R-eye(3)) < tol ? true : false
+
+function compare(a::SE3, b::SE3; tol::Float64=1e-14)
+  norm(a.t-b.t) < tol ? nothing : return false
+  return compare(a.R,b.R)
 end
 
 
