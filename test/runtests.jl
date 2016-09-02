@@ -1,6 +1,18 @@
 using TransformUtils
 using Base.Test
 
+print("[TEST] constructors SO3, Quaternion, AngleAxis... ")
+q = Quaternion(0)
+ss = so3(0)
+R = SO3(0)
+A = AngleAxis(0)
+T = SE3(0)
+SE3(T.t, q)
+SE3(T.t, R)
+SE3(T.t, A)
+println("[SUCCESS]")
+
+
 print("[TEST] comparison functions for SO3, Quaternion, AngleAxis... ")
 @test compare(Quaternion(0),Quaternion(0))
 @test !compare(Quaternion(0),Quaternion(0,[1;0;0]))

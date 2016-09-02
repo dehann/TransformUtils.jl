@@ -116,9 +116,9 @@ type SE3
   SE3() = new()
   SE3(dummy::FloatInt) = new(SO3(0.0), zeros(3))
   SE3(t::VectorFloatInt, r::SO3) = new(r,t)
-  SE3(v::VectorFloatInt, E::Euler) = new(v[1:3],convert(SO3,E))
-  SE3(v::VectorFloatInt, aa::AngleAxis) = new(v[1:3],convert(SO3,aa)) # maybe replace with promote via dispatch
-  SE3(v::VectorFloatInt, q::Quaternion) = new(v[1:3],convert(SO3,q)) # maybe replace with promote via dispatch
+  SE3(v::VectorFloatInt, E::Euler) = new(convert(SO3,E),v[1:3])
+  SE3(v::VectorFloatInt, aa::AngleAxis) = new(convert(SO3,aa),v[1:3]) # maybe replace with promote via dispatch
+  SE3(v::VectorFloatInt, q::Quaternion) = new(convert(SO3,q),v[1:3]) # maybe replace with promote via dispatch
   SE3(M::Array{Float64,2}) = new(vec(M[1:3,4]), SO3(M[1:3,1:3]))
 end
 
