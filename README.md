@@ -9,7 +9,7 @@ Lie groups and algebra, quaternions, Angle Axis and Euler angles. Products and c
 
 ## Introduction
 
-This package is a growing collection of Lie Group/Algebra, Quaternion, Euler, AxisAngle representations. Including convert functions between each, and overloading operators for those sets. The package already includes exponential and logarithm maps for Lie SO(3). SE(2) and SE(3) being written as we go.
+This package is a growing collection of Lie Group/Algebra, Quaternion, Euler, AxisAngle representations. Including convert functions between each, and overloading operators for those sets. The package already includes exponential, logarithm maps and Jacobians for Lie SO(3). SE(3) mostly complete.
 
 ### Interesting usage
 
