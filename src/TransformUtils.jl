@@ -1,6 +1,6 @@
 module TransformUtils
 
-import Base: convert, promote_rule, *
+import Base: convert, promote_rule, *, transpose
 
 export
   Quaternion,
@@ -14,7 +14,9 @@ export
   vee!,
   vee,
   *,
-  T,
+  transpose,
+  matrix,
+  inverse,
   compare,
   normalize!,
   normalize,
@@ -30,6 +32,11 @@ export
   # Should be good to go
   veeAngleAxis,
   veeQuaternion,
+  veeEuler,
+
+  # type aliases
+  FloatInt,
+  VectorFloatInt,
 
   # basic Taylor exported to try against Pade version in expm
   expmOwn,
@@ -71,7 +78,7 @@ type AngleAxis
     theta::Float64
     ax::Array{Float64,1}
     AngleAxis() = new()
-    AngleAxis(s::FloatInt) = new(1.0,zeros(3))
+    AngleAxis(s::FloatInt) = new(0,[1;0;0])
     AngleAxis(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
@@ -99,6 +106,7 @@ type Euler
     Euler() = new()
     Euler(s::FloatInt) = new(0.0,0.0,0.0)
     Euler(r::FloatInt,p::FloatInt,y::FloatInt) = new(r,p,y)
+    Euler(v::VectorFloatInt) = new(v[1],v[2],v[3])
 end
 
 
@@ -109,9 +117,11 @@ type SE3
   SE3(dummy::FloatInt) = new(SO3(0.0), zeros(3))
   SE3(t::VectorFloatInt, r::SO3) = new(r,t)
   SE3(v::VectorFloatInt, E::Euler) = new(v[1:3],convert(SO3,E))
-  SE3(v::VectorFloatInt, aa::AngleAxis) = new(v[1:3],convert(SO3,aa))
-  SE3(v::VectorFloatInt, q::Quaternion) = new(v[1:3],convert(SO3,q))
+  SE3(v::VectorFloatInt, aa::AngleAxis) = new(v[1:3],convert(SO3,aa)) # maybe replace with promote via dispatch
+  SE3(v::VectorFloatInt, q::Quaternion) = new(v[1:3],convert(SO3,q)) # maybe replace with promote via dispatch
+  SE3(M::Array{Float64,2}) = new(vec(M[1:3,4]), SO3(M[1:3,1:3]))
 end
+
 
 function normalize!(q::Quaternion, tol=0.00001)
     mag2 = sum(q.v.^2) + q.s^2
@@ -132,7 +142,31 @@ function normalize(v::Array{Float64,1})
   return v / norm(v)
 end
 
-T(a::SO3) = SO3(a.R')
+function matrix(a::SE3)
+  T = eye(4)
+  T[1:3,1:3] = a.R.R
+  T[1:3,4] = a.t
+  return T
+end
+
+
+function q_conj!(q::Quaternion)
+    normalize!(q)
+    q.v = -q.v
+    nothing
+end
+function q_conj(q::Quaternion)
+    qq = deepcopy(q)
+    q_conj!(qq)
+    return qq
+end
+
+
+transpose(a::SO3) = SO3(a.R')
+inverse(a::SO3) = transpose(a)
+# backslash inverse -- con't remember if it is transpose for SE3 also TODO
+inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
+A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
 
 function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
@@ -149,17 +183,6 @@ function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
 end
 
-compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*T(b)).R-eye(3)) < tol
-
-function compare(a::SE3, b::SE3; tol::Float64=1e-14)
-  norm(a.t-b.t) < tol ? nothing : return false
-  return compare(a.R,b.R)
-end
-function compare(a::Quaternion, b::Quaternion; tol::Float64=1e-14)
-  qiq = a*q_conj(b)
-  return tol <= qiq.s <= 1.0 && norm(qiq.v) < tol
-end
-
 function *(q1::Quaternion, q2::Quaternion)
   ee  = [q1.s; q1.v] * [q2.s; q2.v]'
   w = ee[1,1] - ee[2,2] - ee[3,3] - ee[4,4]
@@ -172,19 +195,44 @@ function *(q1::Quaternion, q2::Quaternion)
   return Quaternion(w, [x; y; z])
 end
 
-function q_conj!(q::Quaternion)
-    normalize!(q)
-    q.v = -q.v
-    nothing
+*(a::AngleAxis, b::AngleAxis) = convert(AngleAxis,convert(Quaternion,a)*convert(Quaternion,b))
+#mangled type products, return first type or nearest Group type (doesn't return an Algebra)
+*(a::so3,b::so3) = convert(SO3,a)*convert(SO3,b)
+*(a::SO3, bq::Quaternion) = a*convert(SO3,bq)
+*(aq::Quaternion, b::SO3) = aq*convert(Quaternion,b)
+*(a::SO3, b::so3) = a*convert(SO3,b)
+*(a::so3, b::SO3) = convert(SO3,a)*b
+*(aq::Quaternion, b::so3) = aq*convert(Quaternion, convert(SO3,b) )
+*(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
+*(aq::Quaternion, baa::AngleAxis) = aq*convert(Quaternion, baa)
+*(a::SO3, baa::AngleAxis) = a*convert(SO3,baa)
+*(a::AngleAxis, bq::Quaternion) = convert(AngleAxis, convert(Quaternion,a)*bq)
+*(a::AngleAxis, b::SO3) = convert(AngleAxis, convert(Quaternion,a)*b )
+*(aa::AngleAxis, b::so3) = aa*convert(SO3,b)
+*(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
+
+
+# comparison functions
+
+compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*transpose(b)).R-eye(3)) < tol
+
+function compare(a::SE3, b::SE3; tol::Float64=1e-14)
+  norm(a.t-b.t) < tol ? nothing : return false
+  return compare(a.R,b.R, tol=tol)
 end
-function q_conj(q::Quaternion)
-    qq = deepcopy(q)
-    q_conj!(qq)
-    return qq
+function compare(a::Quaternion, b::Quaternion; tol::Float64=1e-14)
+  qiq = a*q_conj(b)
+  return tol <= qiq.s <= 1.0+tol && norm(qiq.v) < tol
+end
+function compare(a::AngleAxis,b::AngleAxis; tol::Float64=1e-14)
+  aTb = q_conj(convert(Quaternion,a))*b
+  return compare(Quaternion(0),aTb, tol=tol)
 end
 
 
-function convert(::Type{Quaternion}, v::Array{Float64,1})
+# convert functions
+
+function convert(::Type{Quaternion}, v::VectorFloatInt)
     return Quaternion(v[1],v[2:4])
 end
 
@@ -355,12 +403,15 @@ function convert(::Type{Quaternion}, E::Euler)
   return Quaternion(q[1],q[2:4])
 end
 
+function convert(::Type{SO3},E::Euler)
+  return convert(SO3,convert(Quaternion, E))
+end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
     R = convert(SO3, q1);
     v = R.R * v1
-    [v1[i] = v[i] for i = 1:3]
+    for i = 1:3 v1[i] = v[i] end
     nothing
 end
 function rotate(q1::Quaternion, v1::Array{Float64,1})
@@ -462,7 +513,14 @@ function expmOwn4(M::Array{Float64,2})
 end
 
 function convert(::Type{SO3}, alg::so3)
-  return SO3(expm(alg.S))
+  v = vee(alg)
+  nv = norm(v)
+  if nv < 1e-3
+    return SO3(expm(alg.S))
+  else
+    invnv = 1.0/nv
+    return SO3(eye(3) + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
+  end
 end
 
 
@@ -510,6 +568,16 @@ function veeQuaternion(G::SE3)
   v[1:3] = G.t
   v[4] = q.s
   v[5:7] = q.v[:]
+  return v
+end
+
+# vectorize SE3 group to translation and Quaternion numbers
+# dim7 out: [xyz, cos(th/2), sin(th/2)xyz]
+function veeEuler(G::SE3)
+  E = convert(Euler, G.R)
+  v = zeros(6)
+  v[1:3] = G.t
+  v[4],v[5],v[6] = E.R,E.P,E.Y
   return v
 end
 
