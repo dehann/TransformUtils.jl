@@ -5,8 +5,7 @@
 
 [![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.5.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.5)
 
-
-Lie groups and algebra with some quaternions
+Lie groups and algebra, quaternions, Angle Axis and Euler angles. Products and compare
 
 ## Introduction
 
@@ -31,3 +30,5 @@ Or maybe you want to compare that we still have identity rotation
 Mangled compare functions
 
     compare(Quaternion(0), SO3(0))
+
+Rework SE(2) to type, and not functions
