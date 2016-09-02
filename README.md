@@ -5,7 +5,7 @@
 
 [![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.5.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.5)
 
-Lie groups and algebra, quaternions, Angle Axis and Euler angles. Products and compare
+Lie groups and algebra, quaternions, Angle Axis and Euler angles; products and compare also available.
 
 ## Introduction
 
@@ -17,7 +17,7 @@ Supports mangle products, for example (using identity constructors):
 
     julia> pp = SO3(0) * Quaternion(0) * so3(0.1*randn(3)) * AngleAxis(0)
 
-Or maybe you want to compare that we still have identity rotation
+Or maybe you want to compare against another rotation
 
     julia> compare(SO3(0), pp) # returns true or false
 
