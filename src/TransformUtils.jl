@@ -1,3 +1,5 @@
+__precompile__(true)
+
 module TransformUtils
 
 import Base: convert, promote_rule, *, transpose
