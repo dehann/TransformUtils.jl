@@ -371,6 +371,14 @@ function convert(::Type{so3}, G::SO3)
   so3(logmap(G))
 end
 
+function convert(::Type{so3}, q::Quaternion)
+  so3(logmap(convert(SO3,q)))
+end
+
+function convert(::Type{Quaternion}, alg::so3)
+  convert(Quaternion, convert(SO3, alg))
+end
+
 function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end

@@ -1,9 +1,9 @@
 # TransformUtils.jl
 
-
-[![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.4.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.4)  [![codecov.io](https://codecov.io/github/dehann/TransformUtils.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/TransformUtils.jl?branch=master)
-
+[![codecov.io](https://codecov.io/github/dehann/TransformUtils.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/TransformUtils.jl?branch=master)
+[![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.4.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.4)
 [![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.5.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.5)
+[![TransformUtils](http://pkg.julialang.org/badges/TransformUtils_0.6.svg)](http://pkg.julialang.org/?pkg=TransformUtils&ver=0.6)
 
 Lie groups and algebra, quaternions, Angle Axis and Euler angles; products and compare also available.
 
