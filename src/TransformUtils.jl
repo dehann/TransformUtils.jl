@@ -18,6 +18,7 @@ export
   *,
   transpose,
   matrix,
+  matrix!,
   inverse,
   compare,
   normalize!,
@@ -144,10 +145,16 @@ function normalize(v::Array{Float64,1})
   return v / norm(v)
 end
 
+
+function matrix!(M::Array{Float64,2}, a::SE3)
+  M[1:3,1:3] = a.R.R
+  M[1:3,4] = a.t
+  nothing
+end
+# Return 4x4 matrix version of SE3 transform, also see matrix! for in place version
 function matrix(a::SE3)
   T = eye(4)
-  T[1:3,1:3] = a.R.R
-  T[1:3,4] = a.t
+  matrix!(T, a)
   return T
 end
 
@@ -398,7 +405,7 @@ function convert(::Type{Quaternion}, E::Euler)
   cos_r2 = cos(halfroll);
   cos_p2 = cos(halfpitch);
   cos_y2 = cos(halfyaw);
-
+  
   q[1] = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
   q[2] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
   q[3] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
@@ -413,9 +420,15 @@ function convert(::Type{Quaternion}, E::Euler)
   return Quaternion(q[1],q[2:4])
 end
 
-function convert(::Type{SO3},E::Euler)
+function convert(::Type{SO3}, E::Euler)
   return convert(SO3,convert(Quaternion, E))
 end
+
+# function convert!(R::SO3, E::Euler)
+#   # TODO -- refactor to inplace operations
+#   R = convert(SO3,convert(Quaternion, E))
+#   nothing
+# end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
