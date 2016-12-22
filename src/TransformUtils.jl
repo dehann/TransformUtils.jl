@@ -2,7 +2,7 @@ __precompile__(true)
 
 module TransformUtils
 
-import Base: convert, promote_rule, *, transpose
+import Base: convert, promote_rule, *, transpose, normalize, normalize!
 
 export
   Quaternion,
@@ -26,6 +26,7 @@ export
   q_conj,
   q_conj!,
   convert,
+  convert!,
   rotate!,
   rotate,
   wrapRad,
@@ -126,14 +127,16 @@ type SE3
 end
 
 
-function normalize!(q::Quaternion, tol=0.00001)
-    mag2 = sum(q.v.^2) + q.s^2
+function normalize!(q::Quaternion, tol=1e-6)
+  @inbounds begin
+    mag2 = sum(q.v[1:3].^2) + q.s^2
     if abs(mag2 - 1.0) > tol
         mag = sqrt(mag2)
-        q.v = q.v ./ mag
-        q.s = q.s / mag
+        q.v[1:3] ./= mag
+        q.s /= mag # q.s /
     end
-    nothing
+  end
+  nothing
 end
 function normalize(q::Quaternion, tol=0.00001)
   qq = deepcopy(q)
@@ -263,47 +266,54 @@ function convert(::Type{AngleAxis}, q::Quaternion)
     return AngleAxis(theta, normalize(q.v))
 end
 
-function convert(::Type{SO3}, q::Quaternion)
-    w = q.s;
-    x = q.v[1];
-    y = q.v[2];
-    z = q.v[3];
-    if w < 0.0
-        w,x,y,z = -w, -x, -y, -z
+function convert!(R::SO3, q::Quaternion)
+    # q.s = q.s;
+    # x = q.v[1];
+    # y = q.v[2];
+    # z = q.v[3];
+    if q.s < 0.0
+        q.s, q.v[1:3] = -q.s, -q.v[1:3]
     end
-    nrm = sqrt(w*w+x*x+y*y+z*z)
+    nrm = sqrt(q.s^2+sum(q.v[1:3].^2))
     if (nrm < 0.999)
         println("q2C -- not a unit quaternion nrm = $(nrm)")
         R = eye(3)
     else
         nrm = 1.0/nrm
-        w = w*nrm
-        x = x*nrm
-        y = y*nrm
-        z = z*nrm
-        x2 = x*x
-        y2 = y*y
-        z2 = z*z
-        w2 = w*w
-        xy = 2.0*x*y
-        xz = 2.0*x*z
-        yz = 2.0*y*z
-        wx = 2.0*w*x
-        wy = 2.0*w*y
-        wz = 2.0*w*z
+        q.s *= nrm
+        q.v[1:3] .*= nrm
+        # x = x*nrm
+        # y = y*nrm
+        # z = z*nrm
+        w2, x2, y2, z2 = q.s*q.s, q.v[1]*q.v[1], q.v[2]*q.v[2], q.v[3]*q.v[3]
+        # y2 = y*y
+        # z2 = z*z
+        # w2 =
+        xy = 2.0*q.v[1]*q.v[2]
+        xz = 2.0*q.v[1]*q.v[3]
+        yz = 2.0*q.v[2]*q.v[3]
+        wx = 2.0*q.s*q.v[1]
+        wy = 2.0*q.s*q.v[2]
+        wz = 2.0*q.s*q.v[3]
         #build matrix
-        R = zeros(3,3)
-        R[1,1] = w2+x2-y2-z2
-        R[1,2] = xy-wz
-        R[1,3] = xz+wy
-        R[2,1] = xy+wz
-        R[2,2] = w2-x2+y2-z2
-        R[2,3] = yz-wx
-        R[3,1] = xz-wy
-        R[3,2] = yz+wx
-        R[3,3] = w2-x2-y2+z2
+        # R = zeros(3,3)
+        R.R[1,1] = w2+x2-y2-z2
+        R.R[1,2] = xy-wz
+        R.R[1,3] = xz+wy
+        R.R[2,1] = xy+wz
+        R.R[2,2] = w2-x2+y2-z2
+        R.R[2,3] = yz-wx
+        R.R[3,1] = xz-wy
+        R.R[3,2] = yz+wx
+        R.R[3,3] = w2-x2-y2+z2
     end
-    return SO3(R)
+    # return SO3(R)
+    nothing
+end
+function convert(::Type{SO3}, q::Quaternion)
+  R = SO3(0)
+  convert!(R,q)
+  return R
 end
 
 function convert(::Type{Quaternion}, S::SO3)
@@ -390,9 +400,9 @@ function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end
 
-function convert(::Type{Quaternion}, E::Euler)
+function convert!(q::Quaternion, E::Euler)
   # Using fixed frame rotation scheme, as used in MIT libbot
-  q = zeros(4)
+  # q = zeros(4)
 
   halfroll = E.R/2.0;
   halfpitch = E.P/2.0;
@@ -405,30 +415,40 @@ function convert(::Type{Quaternion}, E::Euler)
   cos_r2 = cos(halfroll);
   cos_p2 = cos(halfpitch);
   cos_y2 = cos(halfyaw);
-  
-  q[1] = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
-  q[2] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
-  q[3] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
-  q[4] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
 
-  q = q./norm(q);
+
+  @inbounds begin
+    q.s = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
+    q.v[1] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
+    q.v[2] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
+    q.v[3] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
+  end
 
   # Enforce positive scalar quaternions following conversion from Euler angles
-  if (q[1]<0)
-    q = -q;
+  if (q.s<0.0)
+    q.s = -q.s
+    q.v[1:3] = -q.v[1:3];
   end
-  return Quaternion(q[1],q[2:4])
+  # q = q./norm(q);
+  normalize!(q)
+  # return Quaternion(q[1],q[2:4])
+  nothing
+end
+function convert(::Type{Quaternion}, E::Euler)
+  q = Quaternion(0)
+  convert!(q, E)
+  return q
 end
 
 function convert(::Type{SO3}, E::Euler)
   return convert(SO3,convert(Quaternion, E))
 end
 
-# function convert!(R::SO3, E::Euler)
-#   # TODO -- refactor to inplace operations
-#   R = convert(SO3,convert(Quaternion, E))
-#   nothing
-# end
+function convert!(R::SO3, E::Euler)
+  # TODO -- refactor to inplace operations
+  convert!(R, convert(Quaternion, E))
+  nothing
+end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
