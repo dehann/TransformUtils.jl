@@ -107,10 +107,13 @@ type Euler
     R::Float64
     P::Float64
     Y::Float64
+    fastconvert::Quaternion
     Euler() = new()
-    Euler(s::FloatInt) = new(0.0,0.0,0.0)
-    Euler(r::FloatInt,p::FloatInt,y::FloatInt) = new(r,p,y)
-    Euler(v::VectorFloatInt) = new(v[1],v[2],v[3])
+    Euler(s::FloatInt) = new(0.0,0.0,0.0, Quaternion(0))
+    Euler(r::FloatInt,p::FloatInt,y::FloatInt) = new(r,p,y, Quaternion(0))
+    Euler(r::FloatInt,p::FloatInt,y::FloatInt,q::Quaternion) = new(r,p,y, q)
+    Euler(v::VectorFloatInt) = new(v[1],v[2],v[3], Quaternion(0))
+    Euler(v::VectorFloatInt, q::Quaternion) = new(v[1],v[2],v[3], q)
 end
 
 
@@ -267,48 +270,51 @@ function convert(::Type{AngleAxis}, q::Quaternion)
 end
 
 function convert!(R::SO3, q::Quaternion)
-    # q.s = q.s;
-    # x = q.v[1];
-    # y = q.v[2];
-    # z = q.v[3];
+  # q.s = q.s;
+  # x = q.v[1];
+  # y = q.v[2];
+  # z = q.v[3];
+  @inbounds begin
     if q.s < 0.0
-        q.s, q.v[1:3] = -q.s, -q.v[1:3]
+      q.s = -q.s
+      q.v[1:3] = -q.v[1:3]
     end
     nrm = sqrt(q.s^2+sum(q.v[1:3].^2))
     if (nrm < 0.999)
-        println("q2C -- not a unit quaternion nrm = $(nrm)")
-        R = eye(3)
+      println("q2C -- not a unit quaternion nrm = $(nrm)")
+      R = eye(3)
     else
-        nrm = 1.0/nrm
-        q.s *= nrm
-        q.v[1:3] .*= nrm
-        # x = x*nrm
-        # y = y*nrm
-        # z = z*nrm
-        w2, x2, y2, z2 = q.s*q.s, q.v[1]*q.v[1], q.v[2]*q.v[2], q.v[3]*q.v[3]
-        # y2 = y*y
-        # z2 = z*z
-        # w2 =
-        xy = 2.0*q.v[1]*q.v[2]
-        xz = 2.0*q.v[1]*q.v[3]
-        yz = 2.0*q.v[2]*q.v[3]
-        wx = 2.0*q.s*q.v[1]
-        wy = 2.0*q.s*q.v[2]
-        wz = 2.0*q.s*q.v[3]
-        #build matrix
-        # R = zeros(3,3)
-        R.R[1,1] = w2+x2-y2-z2
-        R.R[1,2] = xy-wz
-        R.R[1,3] = xz+wy
-        R.R[2,1] = xy+wz
-        R.R[2,2] = w2-x2+y2-z2
-        R.R[2,3] = yz-wx
-        R.R[3,1] = xz-wy
-        R.R[3,2] = yz+wx
-        R.R[3,3] = w2-x2-y2+z2
+      nrm = 1.0/nrm
+      q.s *= nrm
+      q.v[1:3] .*= nrm
+      # x = x*nrm
+      # y = y*nrm
+      # z = z*nrm
+      w2, x2, y2, z2 = q.s*q.s, q.v[1]*q.v[1], q.v[2]*q.v[2], q.v[3]*q.v[3]
+      # y2 = y*y
+      # z2 = z*z
+      # w2 =
+      xy = 2.0*q.v[1]*q.v[2]
+      xz = 2.0*q.v[1]*q.v[3]
+      yz = 2.0*q.v[2]*q.v[3]
+      wx = 2.0*q.s*q.v[1]
+      wy = 2.0*q.s*q.v[2]
+      wz = 2.0*q.s*q.v[3]
+      #build matrix
+      # R = zeros(3,3)
+      R.R[1,1] = w2+x2-y2-z2
+      R.R[1,2] = xy-wz
+      R.R[1,3] = xz+wy
+      R.R[2,1] = xy+wz
+      R.R[2,2] = w2-x2+y2-z2
+      R.R[2,3] = yz-wx
+      R.R[3,1] = xz-wy
+      R.R[3,2] = yz+wx
+      R.R[3,3] = w2-x2-y2+z2
     end
-    # return SO3(R)
-    nothing
+  end
+  # return SO3(R)
+  nothing
 end
 function convert(::Type{SO3}, q::Quaternion)
   R = SO3(0)
@@ -317,35 +323,37 @@ function convert(::Type{SO3}, q::Quaternion)
 end
 
 function convert(::Type{Quaternion}, S::SO3)
-  rot = S.R
-  tr = rot[1,1] + rot[2,2] + rot[3,3];
+  @inbounds begin
+    rot = S.R
+    tr = rot[1,1] + rot[2,2] + rot[3,3];
 
-  if (tr > 0.0)
-    S = sqrt(tr+1.0) * 2.0; # S=4*qw
-    qw = 0.25 * S;
-    qx = (rot[3,2] - rot[2,3]) / S;
-    qy = (rot[1,3] - rot[3,1]) / S;
-    qz = (rot[2,1] - rot[1,2]) / S;
-  else
-    if ((rot[1,1] > rot[2,2]) && (rot[1,1] > rot[3,3]))
-      S = sqrt(1.0 + rot[1,1] - rot[2,2] - rot[3,3]) * 2.0; # S=4*qx
-      qw = (rot[3,2] - rot[2,3]) / S;
-      qx = 0.25 * S;
-      qy = (rot[1,2] + rot[2,1]) / S;
-      qz = (rot[1,3] + rot[3,1]) / S;
+    if (tr > 0.0)
+      S = sqrt(tr+1.0) * 2.0; # S=4*qw
+      qw = 0.25 * S;
+      qx = (rot[3,2] - rot[2,3]) / S;
+      qy = (rot[1,3] - rot[3,1]) / S;
+      qz = (rot[2,1] - rot[1,2]) / S;
     else
-      if (rot[2,2] > rot[3,3])
-        S = sqrt(1.0 + rot[2,2] - rot[1,1] - rot[3,3]) * 2.0 # S=4*qy
-        qw = (rot[1,3] - rot[3,1]) / S;
-        qx = (rot[1,2] + rot[2,1]) / S;
-        qy = 0.25 * S;
-        qz = (rot[2,3] + rot[3,2]) / S;
+      if ((rot[1,1] > rot[2,2]) && (rot[1,1] > rot[3,3]))
+        S = sqrt(1.0 + rot[1,1] - rot[2,2] - rot[3,3]) * 2.0; # S=4*qx
+        qw = (rot[3,2] - rot[2,3]) / S;
+        qx = 0.25 * S;
+        qy = (rot[1,2] + rot[2,1]) / S;
+        qz = (rot[1,3] + rot[3,1]) / S;
       else
-        S = sqrt(1.0 + rot[3,3] - rot[1,1] - rot[2,2]) * 2.0 # S=4*qz
-        qw = (rot[2,1] - rot[1,2]) / S
-        qx = (rot[1,3] + rot[3,1]) / S
-        qy = (rot[2,3] + rot[3,2]) / S
-        qz = 0.25 * S;
+        if (rot[2,2] > rot[3,3])
+          S = sqrt(1.0 + rot[2,2] - rot[1,1] - rot[3,3]) * 2.0 # S=4*qy
+          qw = (rot[1,3] - rot[3,1]) / S;
+          qx = (rot[1,2] + rot[2,1]) / S;
+          qy = 0.25 * S;
+          qz = (rot[2,3] + rot[3,2]) / S;
+        else
+          S = sqrt(1.0 + rot[3,3] - rot[1,1] - rot[2,2]) * 2.0 # S=4*qz
+          qw = (rot[2,1] - rot[1,2]) / S
+          qx = (rot[1,3] + rot[3,1]) / S
+          qy = (rot[2,3] + rot[3,2]) / S
+          qz = 0.25 * S;
+        end
       end
     end
   end
@@ -367,21 +375,25 @@ function convert(::Type{AngleAxis}, s::SO3)
 end
 
 
-function convert(::Type{Euler}, q::Quaternion)
+function convert!(Eu::Euler, q::Quaternion)
   #Function to convert quaternion to Euler angles, from Titterton and Weston
   #04, following quaternion convention of Titterton
-  #UJ UAV Research 11/05/09
 
-  a = q.s
-  b = q.v[1]
-  c = q.v[2]
-  d = q.v[3]
+  # a = q.s
+  # b = q.v[1]
+  # c = q.v[2]
+  # d = q.v[3]
 
-  phi = -atan2(2.0*(c*d - b*a),1.0-2.0*(b^2+c^2)); # -atan2(2.0*(c*d - b*a), a*a - b*b - c*c + d*d) #numerical more stable
-  theta = -asin(-2.0*(c*a - b*d));
-  psi = -atan2(2.0*(b*c - d*a),1.0-2.0*(c^2+d^2)); # -atan2(2.0*(b*c - d*a), a*a + b*b - c*c - d*d)
+  Eu.R = -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
+  Eu.P = -asin(-2.0*(q.v[2]*q.s - q.v[1]*q.v[3]));
+  Eu.Y = -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
 
-  return  Euler(phi,theta,psi)
+  nothing
+end
+function convert(::Type{Euler}, q::Quaternion)
+  Eu = Euler(0)
+  convert!(Eu, q)
+  return Eu
 end
 
 function convert(::Type{so3}, G::SO3)
@@ -446,8 +458,13 @@ end
 
 function convert!(R::SO3, E::Euler)
   # TODO -- refactor to inplace operations
-  convert!(R, convert(Quaternion, E))
+  convert!(E.fastconvert, E)
+  convert!(R, E.fastconvert)
   nothing
+end
+
+type fastconvert!
+
 end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
