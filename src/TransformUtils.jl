@@ -37,6 +37,7 @@ export
   veeAngleAxis,
   veeQuaternion,
   veeEuler,
+  A_invB,
 
   # type aliases
   FloatInt,
@@ -179,9 +180,14 @@ end
 
 transpose(a::SO3) = SO3(a.R')
 inverse(a::SO3) = transpose(a)
-# backslash inverse -- con't remember if it is transpose for SE3 also TODO
+
 inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
 A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
+
+# put result back in a
+# function A_invB!(a::SE3, b::SE3)
+#  = SE3( ( matrix(b)' \ (matrix(a)') )' )
+# end
 
 function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
@@ -673,6 +679,21 @@ end
 function se2vee(T::Array{Float64,2})
     retval = zeros(3)
     se2vee!(retval, T)
+    return retval
+end
+
+
+# TODO Switch to using SE(2) oplus
+# DX = [transx, transy, theta]
+function addPose2Pose2!(retval::Array{Float64,1}, x::Array{Float64,1}, dx::Array{Float64,1})
+  X = SE2(x)
+  DX = SE2(dx)
+  se2vee!(retval, X*DX)
+  nothing
+end
+function addPose2Pose2(x::Array{Float64,1}, dx::Array{Float64,1})
+    retval = zeros(3)
+    addPose2Pose2!(retval, x, dx)
     return retval
 end
 
