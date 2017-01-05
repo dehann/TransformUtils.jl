@@ -56,10 +56,10 @@ for dAA in
   q1 = q*dAA
   R1 = R*dAA
   AA1 = A*dAA
-  @test compare( q1, convert(Quaternion, R1) )
-  @test compare( R1, convert(SO3, q1) )
-  @test compare( q1, convert(Quaternion,AA1) )
-  @test compare( R1, convert(SO3,AA1) )
+  @test compare( q1, convert(Quaternion, R1) , tol=1e-8)
+  @test compare( R1, convert(SO3, q1) , tol=1e-8)
+  @test compare( q1, convert(Quaternion,AA1) , tol=1e-8)
+  @test compare( R1, convert(SO3,AA1) , tol=1e-8)
 end
 println("[SUCCESS]")
 
@@ -78,3 +78,20 @@ ap = SE3(a.t, a.R*so3(0.1*randn(3)))
 back = ap*b*SE3(zeros(3),transpose(ap.R))
 @test compare(SO3(0),back.R)
 println("[SUCCESS]")
+
+println("[TEST] previous discovered issues")
+va = SE3(zeros(3),Euler(0,0,0.0))*SE3(zeros(3),Euler(pi/4,0,0))
+@test abs(TransformUtils.convert(Euler, va.R).R - pi/4) < 1e-4
+
+va = SE3(zeros(3),Euler(0,0,pi/2))*SE3(zeros(3),Euler(pi/4,0,0))
+q = TransformUtils.convert(Quaternion, va.R)
+@show TransformUtils.convert(Euler, q)
+ce = TransformUtils.convert(Euler, va.R)
+@test abs(ce.Y - pi/2) < 1e-8
+@test abs(ce.R - pi/4) < 1e-8
+
+
+
+
+
+# end

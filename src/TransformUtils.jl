@@ -390,9 +390,12 @@ function convert!(Eu::Euler, q::Quaternion)
   # c = q.v[2]
   # d = q.v[3]
 
-  Eu.R = -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
-  Eu.P = -asin(-2.0*(q.v[2]*q.s - q.v[1]*q.v[3]));
-  Eu.Y = -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  Eu.R = atan2(2.0*(q.v[2]*q.v[3] + q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  # Eu.R = -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  #-atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
+  Eu.P = asin(2.0*(q.v[2]*q.s - q.v[1]*q.v[3]));
+  Eu.Y =  atan2(2.0*(q.v[1]*q.v[2] + q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  # Eu.Y = -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
 
   nothing
 end
