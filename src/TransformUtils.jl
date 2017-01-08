@@ -38,6 +38,8 @@ export
   veeQuaternion,
   veeEuler,
   A_invB,
+  ominus,
+  ⊖,
 
   # type aliases
   FloatInt,
@@ -130,7 +132,6 @@ type SE3
   SE3(M::Array{Float64,2}) = new(SO3(M[1:3,1:3]), vec(M[1:3,4]) )
 end
 
-
 function normalize!(q::Quaternion, tol=1e-6)
   @inbounds begin
     mag2 = sum(q.v[1:3].^2) + q.s^2
@@ -182,7 +183,10 @@ transpose(a::SO3) = SO3(a.R')
 inverse(a::SO3) = transpose(a)
 
 inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
+# TODO -- optimize this
 A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
+ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
+⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
 
 # put result back in a
 # function A_invB!(a::SE3, b::SE3)
