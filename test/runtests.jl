@@ -56,10 +56,10 @@ for dAA in
   q1 = q*dAA
   R1 = R*dAA
   AA1 = A*dAA
-  @test compare( q1, convert(Quaternion, R1) , tol=1e-8)
-  @test compare( R1, convert(SO3, q1) , tol=1e-8)
-  @test compare( q1, convert(Quaternion,AA1) , tol=1e-8)
-  @test compare( R1, convert(SO3,AA1) , tol=1e-8)
+  @test compare( q1, convert(Quaternion, R1) , tol=1e-6)
+  @test compare( R1, convert(SO3, q1) , tol=1e-6)
+  @test compare( q1, convert(Quaternion,AA1) , tol=1e-6)
+  @test compare( R1, convert(SO3,AA1) , tol=1e-6)
 end
 println("[SUCCESS]")
 
