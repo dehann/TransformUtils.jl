@@ -27,6 +27,8 @@ Dx = SE3(0) ⊖ xi ⊕ xj # inverse(xi) ⊕ xj
 @test compare( xi, xj ⊖ Dx )
 @test compare( xj, xi ⊕ Dx )
 @test compare( Dx, inverse(xi) ⊕ xj)
+@test compare( Dx, xi\xj )
+
 
 
 

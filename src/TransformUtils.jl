@@ -2,7 +2,7 @@ __precompile__(true)
 
 module TransformUtils
 
-import Base: convert, promote_rule, *, transpose, normalize, normalize!
+import Base: convert, promote_rule, *, transpose, normalize, normalize!, \
 
 export
   Quaternion,
@@ -41,6 +41,7 @@ export
   ominus,
   ⊖,
   ⊕,
+  \,
 
   # type aliases
   FloatInt,
@@ -240,6 +241,8 @@ A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
 ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
 ⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
 ⊕(xi::SE3, Δx::SE3) = xi*Δx
+# SE3(0) ⊖ xi ⊕ xj = Δx
+\(xi::SE3, xj::SE3) = SE3( matrix(xi) \ matrix(xj) )
 
 
 # comparison functions
