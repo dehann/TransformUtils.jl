@@ -79,6 +79,11 @@ back = ap*b*SE3(zeros(3),transpose(ap.R))
 @test compare(SO3(0),back.R)
 println("[SUCCESS]")
 
+print("[TEST] SE3 ⊕ and ⊖ mechanics... ")
+include("se3DevTesting.jl")
+println("[SUCCESS]")
+
+
 println("[TEST] previous discovered issues")
 va = SE3(zeros(3),Euler(0,0,0.0))*SE3(zeros(3),Euler(pi/4,0,0))
 @test abs(TransformUtils.convert(Euler, va.R).R - pi/4) < 1e-4
@@ -89,6 +94,8 @@ q = TransformUtils.convert(Quaternion, va.R)
 ce = TransformUtils.convert(Euler, va.R)
 @test abs(ce.Y - pi/2) < 1e-8
 @test abs(ce.R - pi/4) < 1e-8
+
+
 
 
 

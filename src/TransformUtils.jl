@@ -40,6 +40,7 @@ export
   A_invB,
   ominus,
   ⊖,
+  ⊕,
 
   # type aliases
   FloatInt,
@@ -182,11 +183,8 @@ end
 transpose(a::SO3) = SO3(a.R')
 inverse(a::SO3) = transpose(a)
 
-inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
-# TODO -- optimize this
-A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
-ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
-⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
+
+
 
 # put result back in a
 # function A_invB!(a::SE3, b::SE3)
@@ -236,6 +234,13 @@ end
 *(aa::AngleAxis, b::so3) = aa*convert(SO3,b)
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
+inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
+# TODO -- optimize this
+A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
+ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
+⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
+⊕(xi::SE3, Δx::SE3) = xi*Δx
+
 
 # comparison functions
 
@@ -254,6 +259,9 @@ function compare(a::AngleAxis,b::AngleAxis; tol::Float64=1e-14)
   return compare(Quaternion(0),aTb, tol=tol)
 end
 
+function compare(a::SE3,b::SE3; tol::Float64=1e-10)
+  norm(a.t-b.t)<tol && TransformUtils.compare(a.R, b.R, tol=tol)
+end
 
 # convert functions
 
