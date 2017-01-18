@@ -39,6 +39,7 @@ export
   veeEuler,
   A_invB,
   ominus,
+  oplus,
   ⊖,
   ⊕,
   \,
@@ -236,9 +237,13 @@ end
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
 inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
-# TODO -- optimize this
+# TODO -- optimize this, and abstraction is wrong here
+# Xj = Xi ⊕ ΔX
+# Xj ⊖ ΔX = Xi
+# Xi \ Xj = ΔX   # ⊖ Xi ⊕ Xj = ΔX
 A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
 ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
+oplus(xi::SE3, xj::SE3) = xi*xj
 ⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
 ⊕(xi::SE3, Δx::SE3) = xi*Δx
 # SE3(0) ⊖ xi ⊕ xj = Δx
