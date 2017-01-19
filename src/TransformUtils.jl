@@ -57,7 +57,8 @@ export
   expmOwn4,
 
 
-  # needs refactoring
+  # TODO -- needs refactoring
+  R,
   SE2,
   se2vee,
   se2vee!
