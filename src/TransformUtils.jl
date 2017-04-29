@@ -667,7 +667,10 @@ function veeEuler(G::SE3)
   E = convert(Euler, G.R)
   v = zeros(6)
   v[1:3] = G.t
-  v[4],v[5],v[6] = E.R,E.P,E.Y
+  v[4] = E.R
+  v[5] = E.P
+  v[6] = E.Y
+
   return v
 end
 
