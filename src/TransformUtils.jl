@@ -635,7 +635,18 @@ end
 
 function vee(alg::so3)
    rv = zeros(3)
-   vee!(rv, alg)#[-alg.S[2,3], alg.S[1,3], -alg.S[1,2]]
+   @inbounds vee!(rv, alg)#[-alg.S[2,3], alg.S[1,3], -alg.S[1,2]]
+   return rv
+end
+
+function vee!(rv::Vector{Float64}, q::Quaternion)
+  rv[1] = q.s
+  rv[2:4] = q.v[1:3]
+  nothing
+end
+function vee(q::Quaternion)
+   rv = zeros(4)
+   @inbounds vee!(rv, q)
    return rv
 end
 
@@ -656,8 +667,9 @@ function veeQuaternion(G::SE3)
   q = convert(Quaternion, G.R)
   v = zeros(7)
   v[1:3] = G.t
-  v[4] = q.s
-  v[5:7] = q.v[:]
+  v[4:7] = vee(q)
+  # v[4] = q.s
+  # v[5:7] = q.v[:]
   return v
 end
 
