@@ -2,7 +2,7 @@ __precompile__(true)
 
 module TransformUtils
 
-import Base: convert, promote_rule, *, transpose, normalize, normalize!, \
+import Base: convert, promote_rule, *, transpose, normalize, normalize!, \, vec
 
 export
   Quaternion,
@@ -15,6 +15,7 @@ export
   skew,
   vee!,
   vee,
+  vec,
   *,
   transpose,
   matrix,
@@ -33,6 +34,7 @@ export
   logmap,
   rightJacExmap,
   rightJacExmapinv,
+  deltaso3vee,
   # Should be good to go
   veeAngleAxis,
   veeQuaternion,
@@ -250,6 +252,7 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 # SE3(0) ⊖ xi ⊕ xj = Δx
 \(xi::SE3, xj::SE3) = SE3( matrix(xi) \ matrix(xj) )
 
+\(qi::Quaternion,qj::Quaternion) = q_conj(qi) * qj
 
 # comparison functions
 
@@ -549,6 +552,10 @@ function logmap(grp::SO3)
   return ret
 end
 
+function logmap(q::Quaternion)
+  logmap(convert(SO3, q))
+end
+
 # Chikjain's book p??
 function rightJacExmap(alg::so3)
   Gam = alg.S
@@ -661,6 +668,13 @@ function veeAngleAxis(G::SE3)
   return v
 end
 
+function vec(q::Quaternion)
+  v = zeros(4)
+  v[1] = q.s
+  v[2:4] = q.v[:]
+  return v
+end
+
 # vectorize SE3 group to translation and Quaternion numbers
 # dim7 out: [xyz, cos(th/2), sin(th/2)xyz]
 function veeQuaternion(G::SE3)
@@ -684,6 +698,11 @@ function veeEuler(G::SE3)
   v[6] = E.Y
 
   return v
+end
+
+function deltaso3vee(aQb::Quaternion,aQc::Quaternion)
+  dq = aQb\aQc
+  s = logmap(dq)
 end
 
 
