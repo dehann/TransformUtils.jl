@@ -1,6 +1,8 @@
 # weighted product of gaussian terms on rotational manifold.
 
 using TransformUtils
+# using JuMP
+using NLsolve
 
 import Base: convert
 
@@ -35,6 +37,14 @@ end
 function convert(::Type{Rotations.Quat}, q::TransformUtils.Quaternion)
     Rotations.Quat(q.s, q.v...)
 end
+
+
+function distRiemann(q1::Quaternion, q2::Quaternion)
+  dR = convert(SO3, q_conj(q1)*q2 )
+  norm(logmap(dR))/sqrt(2)
+end
+
+# distRiemann(q1,q2)
 
 
 
@@ -75,15 +85,15 @@ function weightedmean(
       return muq
   end
 end
-a = q1
-b = q2
-c = deepcopy(a)
-Sctoa = deltaso3vee(c, a)
-Sctob = deltaso3vee(c, b)
-S = 0.5*(Sctoa + Sctob)
-d = c * so3(S)
-epsi = abs(c.s - d.s) + norm(c.v-d.v)
-c = d
+# a = q1
+# b = q2
+# c = deepcopy(a)
+# Sctoa = deltaso3vee(c, a)
+# Sctob = deltaso3vee(c, b)
+# S = 0.5*(Sctoa + Sctob)
+# d = c * so3(S)
+# epsi = abs(c.s - d.s) + norm(c.v-d.v)
+# c = d
 
 
 sigmas = rand(1,2)
@@ -93,6 +103,50 @@ q1 = Quaternion(0)
 q2 = convert(Quaternion, so3(randn(3)))
 
 
+
+# analytic example from literature, M Moakher, Means and averaging in the group of rotations
+
+R1 = convert(SO3, q1)
+R2 = convert(SO3, q2)
+
+R = R1.R*sqrtm(R1.R'*R2.R)
+
+q12 = convert(Quaternion, SO3(real.(R)))
+q12s = convert(Rotations.Quat, q12)
+
+
+
+using Optim
+
+# looking at direct optimization
+function getdists(X, q1, q2)
+    qq = Quaternion(X[1],X[2:4])
+    distRiemann(q1,qq) + distRiemann(q2,qq)
+end
+
+
+result = optimize((x) -> getdists(x, q1, q2), [1.,0,0,0])
+
+q12A = result.minimizer
+q12 = Quaternion(q12A[1],q12A[2:4])
+
+q12s = convert(Quat, q12)
+
+# m = Model()
+#
+# @variable(m, 0.0 <= w <=1.0 )
+# @variable(m, -1.0 <= x <=1.0 )
+# @variable(m, -1.0 <= y <=1.0 )
+# @variable(m, -1.0 <= z <=1.0 )
+#
+# @constraint(m, w^2 + x^2 + y^2 + z^2 == 1)
+# @objective(m, Min, getdists(getvalue(w),getvalue(x),getvalue(y),getvalue(z), q1, q2) )
+# print(m)
+
+
+
+# Dehann working
+
 q1s = convert(Rotations.Quat, q1)
 q2s = convert(Rotations.Quat, q2)
 
@@ -101,14 +155,20 @@ q12 = weightedmean([q1,q2], docovariance=true)
 q12s = convert(Rotations.Quat, q12[1])
 
 
+
+## Visualize for all
+
 drawquat!(vis, q1s, :q1)
 drawquat!(vis, q2s, :q2, color=RGBA(0,1.,0,0.5))
 
 drawquat!(vis, q12s, :q12, color=RGBA(1.,1.,0,0.5))
 
 
-q12t = convert(Rotations.Quat, d)
-drawquat!(vis, q12t, :q12t, color=RGBA(0.,0.,1,0.5))
+# q12t = convert(Rotations.Quat, d)
+# drawquat!(vis, q12t, :q12t, color=RGBA(0.,0.,1,0.5))
+
+
+
 
 
 
