@@ -121,13 +121,19 @@ using Optim
 # looking at direct optimization
 function getdists(X, q1, q2)
     qq = Quaternion(X[1],X[2:4])
-    distRiemann(q1,qq) + distRiemann(q2,qq)
+    @show unitconst = sum(X[1:4].^2) - 1.0
+
+    # sum([distRiemann(q1,qq); distRiemann(q2,qq)].^2) + X[5]*unitconst
+    distRiemann(q2,qq) + X[5]*unitconst
 end
 
+X = [1;0;0;0]
+distRiemann(q2,Quaternion(X[1],X[2:4]))
 
-result = optimize((x) -> getdists(x, q1, q2), [1.,0,0,0])
+result = optimize((x) -> getdists(x, q1, q2), [1.,0,0,0,1000])
 
 q12A = result.minimizer
+sum(q12A[1:4].^2)
 q12 = Quaternion(q12A[1],q12A[2:4])
 
 q12s = convert(Quat, q12)
