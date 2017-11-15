@@ -200,12 +200,12 @@ function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
 end
 
-function *(a::SO3, b::so3)
-  return SO3(a*convert(SO3,b))
-end
-function *(a::so3, b::SO3)
-  return SO3(convert(SO3,a)*b)
-end
+# function *(a::SO3, b::so3)
+#   return SO3(a*convert(SO3,b))
+# end
+# function *(a::so3, b::SO3)
+#   return SO3(convert(SO3,a)*b)
+# end
 
 function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
@@ -632,6 +632,7 @@ function wrapRad(th::Float64)
 end
 
 R(th::Float64) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
+R(;x::Float64=0.0,y::Float64=0.0,z::Float64=0.0) = convert(SO3, so3([x,y,z]))
 
 function vee!(rv::Vector{Float64}, alg::so3)
   rv[1] = -alg.S[2,3]
