@@ -75,11 +75,11 @@ export
       return S
   end
 
-typealias FloatInt Union{Float64,Int}
-typealias VectorFloatInt Union{Vector{Float64},Vector{Int}}
+const FloatInt = Union{Float64,Int}
+const VectorFloatInt = Union{Vector{Float64},Vector{Int}}
 
 
-type Quaternion
+mutable struct Quaternion
     s::Float64
     v::Array{Float64,1}
     Quaternion() = new()
@@ -87,7 +87,7 @@ type Quaternion
     Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
-type AngleAxis
+mutable struct AngleAxis
     theta::Float64
     ax::Array{Float64,1}
     AngleAxis() = new()
@@ -95,16 +95,16 @@ type AngleAxis
     AngleAxis(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
-typealias AxisAngle AngleAxis
+const AxisAngle = AngleAxis
 
-type SO3
+mutable struct SO3
     R::Array{Float64,2}
     SO3() = new()
     SO3(dummy::FloatInt) = new(eye(3))
     SO3(r::Array{Float64,2}) = new(r)
 end
 
-type so3
+mutable struct so3
     S::Array{Float64,2}
     so3() = new()
     so3(s::FloatInt) = new(zeros(3,3))
@@ -112,7 +112,7 @@ type so3
     so3(S::Array{Float64,2}) = new(S)
 end
 
-type Euler
+mutable struct Euler
     R::Float64
     P::Float64
     Y::Float64
@@ -126,7 +126,7 @@ type Euler
 end
 
 
-type SE3
+mutable struct SE3
   R::SO3
   t::Vector{Float64}
   SE3() = new()
