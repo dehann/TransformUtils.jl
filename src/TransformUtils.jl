@@ -200,12 +200,7 @@ function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
 end
 
-# function *(a::SO3, b::so3)
-#   return SO3(a*convert(SO3,b))
-# end
-# function *(a::so3, b::SO3)
-#   return SO3(convert(SO3,a)*b)
-# end
+
 
 function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
@@ -223,20 +218,23 @@ function *(q1::Quaternion, q2::Quaternion)
   return Quaternion(w, [x; y; z])
 end
 
-*(a::AngleAxis, b::AngleAxis) = convert(AngleAxis,convert(Quaternion,a)*convert(Quaternion,b))
 #mangled type products, return first type or nearest Group type (doesn't return an Algebra)
-*(a::so3,b::so3) = convert(SO3,a)*convert(SO3,b)
 *(a::SO3, bq::Quaternion) = a*convert(SO3,bq)
-*(aq::Quaternion, b::SO3) = aq*convert(Quaternion,b)
 *(a::SO3, b::so3) = a*convert(SO3,b)
-*(a::so3, b::SO3) = convert(SO3,a)*b
-*(aq::Quaternion, b::so3) = aq*convert(Quaternion, convert(SO3,b) )
-*(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
-*(aq::Quaternion, baa::AngleAxis) = aq*convert(Quaternion, baa)
 *(a::SO3, baa::AngleAxis) = a*convert(SO3,baa)
+
+*(aq::Quaternion, b::SO3) = aq*convert(Quaternion,b)
+*(aq::Quaternion, b::so3) = aq*convert(Quaternion, convert(SO3,b) )
+*(aq::Quaternion, baa::AngleAxis) = aq*convert(Quaternion, baa)
+
+*(a::AngleAxis, b::AngleAxis) = convert(AngleAxis,convert(Quaternion,a)*convert(Quaternion,b))
 *(a::AngleAxis, bq::Quaternion) = convert(AngleAxis, convert(Quaternion,a)*bq)
 *(a::AngleAxis, b::SO3) = convert(AngleAxis, convert(Quaternion,a)*b )
 *(aa::AngleAxis, b::so3) = aa*convert(SO3,b)
+
+*(a::so3,b::so3) = convert(SO3,a)*convert(SO3,b)
+*(a::so3, b::SO3) = convert(SO3,a)*b
+*(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
 inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
