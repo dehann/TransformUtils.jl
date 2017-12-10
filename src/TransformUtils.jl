@@ -258,9 +258,12 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 
 compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*transpose(b)).R-eye(3)) < tol
 
-function compare(a::SE3, b::SE3; tol::Float64=1e-14)
-  norm(a.t-b.t) < tol ? nothing : return false
-  return compare(a.R,b.R, tol=tol)
+# function compare(a::SE3, b::SE3; tol::Float64=1e-14)
+#   norm(a.t-b.t) < tol ? nothing : return false
+#   return compare(a.R,b.R, tol=tol)
+# end
+function compare(a::SE3,b::SE3; tol::Float64=1e-10)
+  norm(a.t-b.t)<tol && TransformUtils.compare(a.R, b.R, tol=tol)
 end
 function compare(a::Quaternion, b::Quaternion; tol::Float64=1e-14)
   qiq = a*q_conj(b)
@@ -271,9 +274,6 @@ function compare(a::AngleAxis,b::AngleAxis; tol::Float64=1e-14)
   return compare(Quaternion(0),aTb, tol=tol)
 end
 
-function compare(a::SE3,b::SE3; tol::Float64=1e-10)
-  norm(a.t-b.t)<tol && TransformUtils.compare(a.R, b.R, tol=tol)
-end
 
 # convert functions
 
@@ -496,9 +496,9 @@ function convert!(R::SO3, E::Euler)
   nothing
 end
 
-type fastconvert!
-
-end
+# type fastconvert!
+#
+# end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
