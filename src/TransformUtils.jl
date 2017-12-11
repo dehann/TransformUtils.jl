@@ -75,11 +75,11 @@ export
       return S
   end
 
-typealias FloatInt Union{Float64,Int}
-typealias VectorFloatInt Union{Vector{Float64},Vector{Int}}
+const FloatInt = Union{Float64,Int}
+const VectorFloatInt = Union{Vector{Float64},Vector{Int}}
 
 
-type Quaternion
+mutable struct Quaternion
     s::Float64
     v::Array{Float64,1}
     Quaternion() = new()
@@ -87,7 +87,7 @@ type Quaternion
     Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
-type AngleAxis
+mutable struct AngleAxis
     theta::Float64
     ax::Array{Float64,1}
     AngleAxis() = new()
@@ -95,16 +95,16 @@ type AngleAxis
     AngleAxis(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
-typealias AxisAngle AngleAxis
+const AxisAngle = AngleAxis
 
-type SO3
+mutable struct SO3
     R::Array{Float64,2}
     SO3() = new()
     SO3(dummy::FloatInt) = new(eye(3))
     SO3(r::Array{Float64,2}) = new(r)
 end
 
-type so3
+mutable struct so3
     S::Array{Float64,2}
     so3() = new()
     so3(s::FloatInt) = new(zeros(3,3))
@@ -112,7 +112,7 @@ type so3
     so3(S::Array{Float64,2}) = new(S)
 end
 
-type Euler
+mutable struct Euler
     R::Float64
     P::Float64
     Y::Float64
@@ -126,7 +126,7 @@ type Euler
 end
 
 
-type SE3
+mutable struct SE3
   R::SO3
   t::Vector{Float64}
   SE3() = new()
@@ -200,12 +200,7 @@ function *(a::SO3, b::SO3)
   return SO3(a.R*b.R)
 end
 
-# function *(a::SO3, b::so3)
-#   return SO3(a*convert(SO3,b))
-# end
-# function *(a::so3, b::SO3)
-#   return SO3(convert(SO3,a)*b)
-# end
+
 
 function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
@@ -223,20 +218,23 @@ function *(q1::Quaternion, q2::Quaternion)
   return Quaternion(w, [x; y; z])
 end
 
-*(a::AngleAxis, b::AngleAxis) = convert(AngleAxis,convert(Quaternion,a)*convert(Quaternion,b))
 #mangled type products, return first type or nearest Group type (doesn't return an Algebra)
-*(a::so3,b::so3) = convert(SO3,a)*convert(SO3,b)
 *(a::SO3, bq::Quaternion) = a*convert(SO3,bq)
-*(aq::Quaternion, b::SO3) = aq*convert(Quaternion,b)
 *(a::SO3, b::so3) = a*convert(SO3,b)
-*(a::so3, b::SO3) = convert(SO3,a)*b
-*(aq::Quaternion, b::so3) = aq*convert(Quaternion, convert(SO3,b) )
-*(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
-*(aq::Quaternion, baa::AngleAxis) = aq*convert(Quaternion, baa)
 *(a::SO3, baa::AngleAxis) = a*convert(SO3,baa)
+
+*(aq::Quaternion, b::SO3) = aq*convert(Quaternion,b)
+*(aq::Quaternion, b::so3) = aq*convert(Quaternion, convert(SO3,b) )
+*(aq::Quaternion, baa::AngleAxis) = aq*convert(Quaternion, baa)
+
+*(a::AngleAxis, b::AngleAxis) = convert(AngleAxis,convert(Quaternion,a)*convert(Quaternion,b))
 *(a::AngleAxis, bq::Quaternion) = convert(AngleAxis, convert(Quaternion,a)*bq)
 *(a::AngleAxis, b::SO3) = convert(AngleAxis, convert(Quaternion,a)*b )
 *(aa::AngleAxis, b::so3) = aa*convert(SO3,b)
+
+*(a::so3,b::so3) = convert(SO3,a)*convert(SO3,b)
+*(a::so3, b::SO3) = convert(SO3,a)*b
+*(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
 inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
@@ -258,9 +256,12 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 
 compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*transpose(b)).R-eye(3)) < tol
 
-function compare(a::SE3, b::SE3; tol::Float64=1e-14)
-  norm(a.t-b.t) < tol ? nothing : return false
-  return compare(a.R,b.R, tol=tol)
+# function compare(a::SE3, b::SE3; tol::Float64=1e-14)
+#   norm(a.t-b.t) < tol ? nothing : return false
+#   return compare(a.R,b.R, tol=tol)
+# end
+function compare(a::SE3,b::SE3; tol::Float64=1e-10)
+  norm(a.t-b.t)<tol && TransformUtils.compare(a.R, b.R, tol=tol)
 end
 function compare(a::Quaternion, b::Quaternion; tol::Float64=1e-14)
   qiq = a*q_conj(b)
@@ -271,9 +272,6 @@ function compare(a::AngleAxis,b::AngleAxis; tol::Float64=1e-14)
   return compare(Quaternion(0),aTb, tol=tol)
 end
 
-function compare(a::SE3,b::SE3; tol::Float64=1e-10)
-  norm(a.t-b.t)<tol && TransformUtils.compare(a.R, b.R, tol=tol)
-end
 
 # convert functions
 
@@ -496,9 +494,9 @@ function convert!(R::SO3, E::Euler)
   nothing
 end
 
-type fastconvert!
-
-end
+# type fastconvert!
+#
+# end
 
 function rotate!(q1::Quaternion, v1::Array{Float64,1})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
