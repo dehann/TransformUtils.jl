@@ -278,7 +278,7 @@ end
 # convert functions
 
 function convert(::Type{Quaternion}, v::VectorFloatInt)
-    return Quaternion(v[1],v[2:4])
+    return Quaternion(v[1],v[1:3])
 end
 
 function convert(::Type{Quaternion}, aa::AngleAxis)

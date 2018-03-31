@@ -96,6 +96,78 @@ end
 # c = d
 
 
+function quatGuassianProd(q1::Quaternion, cov1, q2::Quaternion, cov2)
+  # aa = convert(TransformUtils.AngleAxis, q_conj(q2)*q3)
+  inform1 = inv(cov1)
+  inform2 = inv(cov2)
+  inform = inform1 + inform2
+
+  qD = q_conj(q1) * q2
+  s = convert(so3, qD)
+  sx = inform \ inform2 * vee(s)
+  q1*convert(Quaternion, so3(sx)), inform
+end
+
+
+
+# test quaternion rotation and commutation conventions are clear
+using Base: Test
+
+q1 = Quaternion(0)
+q2 = convert(Quaternion, TransformUtils.AngleAxis(pi/2, [0,0,1] ))
+q3 = Quaternion(0,[0,0,1])
+qD = deepcopy(q2)
+qmY = Quaternion(1/sqrt(2), [0; -1/sqrt(2); 0])
+qmYt = convert(Quaternion, TransformUtils.AngleAxis(-pi/2, [0;1.0;0]) )
+
+@testset "Ensure basic quaternion operations hold" begin
+
+@test !compare(q1, qD)
+@test compare(q2, qD)
+@test !compare(q3, qD)
+@test compare(qmY, qmYt)
+@test qmYt.s >= 0
+
+q1D = q1 * qD
+@test compare(q2, q1D)
+
+q2D = q2 * qD
+@test compare(q3, q2D)
+
+# special case q2 === qD
+qD2 = qD * q2
+@test compare(q3, qD2)
+
+# ensure local frame rotations are multiplied on the right
+q1DmY = q1 * qD * qmY
+@test norm(rotate(q1DmY, [1,0,0.0]) - [0,0,1.0]) < 1e-12
+
+q1mYD = q1 * qmY * qD
+@test norm(rotate(q1mYD, [1,0,0.0]) - [0,1.0,0]) < 1e-12
+
+end
+
+# test the Guassian product
+
+cov1 = eye(3)
+cov2 = eye(3)
+
+
+q12, cov12 = quatGuassianProd(q1, cov1, q2, cov2)
+
+drawquat!(vis, convert(Quat, q1), :q1)
+drawquat!(vis, convert(Quat, q2), :q2)
+drawquat!(vis, convert(Quat, q12), :q12, color=RGBA(0,1.0,0,0.5))
+
+
+
+quatGuassianProd(q1*qmY, cov1, q2, cov2)
+
+
+
+
+
+
 sigmas = rand(1,2)
 sigmas = ones(1,2)
 
