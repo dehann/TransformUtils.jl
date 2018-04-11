@@ -16,6 +16,7 @@ export
   vee!,
   vee,
   vec,
+  setso3!,
   *,
   transpose,
   matrix,
@@ -110,6 +111,16 @@ mutable struct so3
     so3(s::FloatInt) = new(zeros(3,3))
     so3(v::VectorFloatInt) = new(skew(v))
     so3(S::Array{Float64,2}) = new(S)
+end
+
+function setso3!(s::so3, v::Union{Array, SubArray})
+  s.S[1,2] = -v[3]
+  s.S[1,3] = v[2]
+  s.S[2,3] = -v[1]
+  s.S[2,1] = v[3]
+  s.S[3,1] = -v[2]
+  s.S[3,2] = v[1]
+  nothing
 end
 
 mutable struct Euler
