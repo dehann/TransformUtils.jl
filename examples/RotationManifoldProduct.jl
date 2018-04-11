@@ -2,9 +2,9 @@
 
 using TransformUtils
 # using JuMP
-using NLsolve
+using NLsolve, Distributions
 
-import Base: convert
+import Base: convert, rand
 
 # means = zeros(4,2)
 # means[1,:] = 1.0
@@ -33,7 +33,6 @@ function drawquat!(vis::DrakeVisualizer.Visualizer,
 end
 
 
-
 function convert(::Type{Rotations.Quat}, q::TransformUtils.Quaternion)
     Rotations.Quat(q.s, q.v...)
 end
@@ -45,6 +44,151 @@ function distRiemann(q1::Quaternion, q2::Quaternion)
 end
 
 # distRiemann(q1,q2)
+
+
+
+function quatGuassianProd(q1::Quaternion, cov1, q2::Quaternion, cov2)
+  # aa = convert(TransformUtils.AngleAxis, q_conj(q2)*q3)
+  inform1 = inv(cov1)
+  inform2 = inv(cov2)
+  inform = inform1 + inform2
+
+  qD = q_conj(q1) * q2
+  s = convert(so3, qD)
+  sx = inform \ inform2 * vee(s)
+  q1*convert(Quaternion, so3(sx)), inform
+end
+
+
+function sampleRotationalGaussian(q1::Quaternion, covar::Array{Float64,2}, N=1)
+  mv = MvNormal(zeros(3), covar)
+  sps = rand(mv, N)
+  qsps = Vector{Quaternion}(N)
+  so = so3(zeros(3))
+  for i in 1:N
+    sp = view(sps, :, i)
+    setso3!(so, sp)
+    qs = convert(Quaternion, so)
+    qsps[i] = q1*qs
+  end
+  return qsps
+end
+
+function sampleRotationalGaussian(Q::RotationalGaussian, N=1)
+  sps = rand(Q.density, N)
+  qsps = Vector{Quaternion}(N)
+  so = so3(zeros(3))
+  for i in 1:N
+    sp = view(sps, :, i)
+    setso3!(so, sp)
+    qs = convert(Quaternion, so)
+    qsps[i] = Q.mean*qs
+  end
+  return qsps
+end
+rand(Q::RotationalGaussian, N=1) = sampleRotationalGaussian(Q, N)
+
+function drawRotationalSamples!(vis::DrakeVisualizer.Visualizer, qsps::Vector{Quaternion}; lbl=:pointcloud, c=RGB(1.0, 0, 0))
+  N = length(qsps)
+  ref = [1.0;0;0]
+  pts = [rotate(qsps[i], ref) for i in 1:N]
+  pointcloud = PointCloud(pts)
+  pointcloud.channels[:rgb] = [c for i in 1:N]
+  setgeometry!(vis[:pointcloud], pointcloud)
+  setgeometry!(vis[lbl], pointcloud)
+end
+
+
+struct RotationalGaussian
+  mean::Quaternion
+  density::Distributions.MvNormal
+end
+
+function rotationalGaussianFromLocal(q1::Quaternion, cv::Array{Float64,2})
+  R = convert(SO3,q1).R
+  RCRt = R*cv*(R')
+  RotationalGaussian(q1, Distributions.MvNormal(zeros(3), RCRt))
+end
+
+
+q1 = Quaternion(0)
+q2 = convert(Quaternion, TransformUtils.AngleAxis(pi/2, [0,0,1] ))
+q3 = Quaternion(0,[0,0,1])
+qD = deepcopy(q2)
+qmY = Quaternion(1/sqrt(2), [0; -1/sqrt(2); 0])
+qmYt = convert(Quaternion, TransformUtils.AngleAxis(-pi/2, [0;1.0;0]) )
+
+
+q1sps = sampleRotationalGaussian(q1, 1/10*[1. 0 0; 0 0.1 0; 0 0 2.], 1000)
+drawRotationalSamples!(vis, q1sps, lbl=:q1)
+
+q2sps = sampleRotationalGaussian(q2, 1/10*[1. 0 0; 0 0.1 0; 0 0 2.], 1000)
+drawRotationalSamples!(vis, q2sps, lbl=:q2, c=RGB(0,1.0,0))
+
+qYsps = sampleRotationalGaussian(qmY, 1/10*[1. 0 0; 0 1 0; 0 0 1.], 1000)
+drawRotationalSamples!(vis, qYsps, lbl=:qY, c=RGB(0,0,1.0))
+
+
+rQx = rotationalGaussianFromLocal(q1, 1/20*[1.0 0 0; 0 1.4 -1.3; 0 -1.3 1.4])
+rQxsps = rand(rQx, 1000)
+drawRotationalSamples!(vis, rQxsps, lbl=:rQx, c=RGB(1.0,1.0,0))
+
+rQy = rotationalGaussianFromLocal(q2, 1/20*[1.4 0 1.3; 0 1.0 0; 1.3 0 1.3])
+rQysps = rand(rQy, 1000)
+drawRotationalSamples!(vis, rQysps, lbl=:rQy, c=RGB(0,1.0,1.0))
+
+rQz = rotationalGaussianFromLocal(qmY, 1/20*[1.4 1.3 0; 1.3 1.4 0; 0 0 1.0])
+rQzsps = rand(rQz, 1000)
+drawRotationalSamples!(vis, rQzsps, lbl=:rQz, c=RGB(1.0,0.0,1.0))
+
+
+# test the Guassian product
+
+cov1 = eye(3)
+cov2 = eye(3)
+
+
+q12, cov12 = quatGuassianProd(q1, cov1, q2, cov2)
+
+drawquat!(vis, convert(Quat, q1), :q1)
+drawquat!(vis, convert(Quat, q2), :q2)
+drawquat!(vis, convert(Quat, q12), :q12, color=RGBA(0,1.0,0,0.5))
+
+
+
+quatGuassianProd(q1*qmY, cov1, q2, cov2)
+
+
+
+
+
+
+sigmas = rand(1,2)
+sigmas = ones(1,2)
+
+q1 = Quaternion(0)
+q2 = convert(Quaternion, so3(randn(3)))
+
+
+
+
+
+
+
+# analytic example from literature, M Moakher, Means and averaging in the group of rotations
+
+R1 = convert(SO3, q1)
+R2 = convert(SO3, q2)
+
+R = R1.R*sqrtm(R1.R'*R2.R)
+
+q12 = convert(Quaternion, SO3(real.(R)))
+q12s = convert(Rotations.Quat, q12)
+
+
+
+
+
 
 
 
@@ -94,97 +238,6 @@ end
 # d = c * so3(S)
 # epsi = abs(c.s - d.s) + norm(c.v-d.v)
 # c = d
-
-
-function quatGuassianProd(q1::Quaternion, cov1, q2::Quaternion, cov2)
-  # aa = convert(TransformUtils.AngleAxis, q_conj(q2)*q3)
-  inform1 = inv(cov1)
-  inform2 = inv(cov2)
-  inform = inform1 + inform2
-
-  qD = q_conj(q1) * q2
-  s = convert(so3, qD)
-  sx = inform \ inform2 * vee(s)
-  q1*convert(Quaternion, so3(sx)), inform
-end
-
-
-
-# test quaternion rotation and commutation conventions are clear
-using Base: Test
-
-q1 = Quaternion(0)
-q2 = convert(Quaternion, TransformUtils.AngleAxis(pi/2, [0,0,1] ))
-q3 = Quaternion(0,[0,0,1])
-qD = deepcopy(q2)
-qmY = Quaternion(1/sqrt(2), [0; -1/sqrt(2); 0])
-qmYt = convert(Quaternion, TransformUtils.AngleAxis(-pi/2, [0;1.0;0]) )
-
-@testset "Ensure basic quaternion operations hold" begin
-
-@test !compare(q1, qD)
-@test compare(q2, qD)
-@test !compare(q3, qD)
-@test compare(qmY, qmYt)
-@test qmYt.s >= 0
-
-q1D = q1 * qD
-@test compare(q2, q1D)
-
-q2D = q2 * qD
-@test compare(q3, q2D)
-
-# special case q2 === qD
-qD2 = qD * q2
-@test compare(q3, qD2)
-
-# ensure local frame rotations are multiplied on the right
-q1DmY = q1 * qD * qmY
-@test norm(rotate(q1DmY, [1,0,0.0]) - [0,0,1.0]) < 1e-12
-
-q1mYD = q1 * qmY * qD
-@test norm(rotate(q1mYD, [1,0,0.0]) - [0,1.0,0]) < 1e-12
-
-end
-
-# test the Guassian product
-
-cov1 = eye(3)
-cov2 = eye(3)
-
-
-q12, cov12 = quatGuassianProd(q1, cov1, q2, cov2)
-
-drawquat!(vis, convert(Quat, q1), :q1)
-drawquat!(vis, convert(Quat, q2), :q2)
-drawquat!(vis, convert(Quat, q12), :q12, color=RGBA(0,1.0,0,0.5))
-
-
-
-quatGuassianProd(q1*qmY, cov1, q2, cov2)
-
-
-
-
-
-
-sigmas = rand(1,2)
-sigmas = ones(1,2)
-
-q1 = Quaternion(0)
-q2 = convert(Quaternion, so3(randn(3)))
-
-
-
-# analytic example from literature, M Moakher, Means and averaging in the group of rotations
-
-R1 = convert(SO3, q1)
-R2 = convert(SO3, q2)
-
-R = R1.R*sqrtm(R1.R'*R2.R)
-
-q12 = convert(Quaternion, SO3(real.(R)))
-q12s = convert(Rotations.Quat, q12)
 
 
 
