@@ -119,6 +119,7 @@ end
   @test abs(ce.R - pi/4) < 1e-8
 end
 
+include("testEfficientSE3.jl")
 
 
 
