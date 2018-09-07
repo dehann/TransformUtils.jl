@@ -159,7 +159,7 @@ function fast_norm_TU(u)
   @fastmath @inbounds @simd for i in 1:n
       s += u[i]^2
   end
-  @fastmath @inbounds return sqrt(s/n)
+  @fastmath @inbounds return sqrt(s)
 end
 
 function normalize!(q::Quaternion, tol=1e-6)
