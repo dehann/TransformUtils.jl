@@ -169,9 +169,10 @@ function normalize!(q::Quaternion, tol=1e-6)
       s += q.v[i]^2
   end
   @fastmath mag1 = 1.0/sqrt(s)
-  @fastmath @inbounds for i in 1:3
-    q.v[i] .*= mag1
-  end
+  # @fastmath @inbounds for i in 1:3
+  #   q.v[i] *= mag1
+  # end
+  @fastmath @inbounds q.v .*= mag1
   @fastmath q.s *= mag1
   nothing
 end
@@ -345,17 +346,18 @@ function convert!(R::SO3, q::Quaternion)
       q.s = -q.s
       q.v[1:3] = -q.v[1:3]
     end
-    nrm = sqrt(q.s^2+sum(q.v[1:3].^2))
-    if (nrm < 0.999)
-      println("q2C -- not a unit quaternion nrm = $(nrm)")
-      R = eye(3)
-    else
-      nrm = 1.0/nrm
-      q.s *= nrm
-      q.v[1:3] .*= nrm
-      # x = x*nrm
-      # y = y*nrm
-      # z = z*nrm
+    # nrm = sqrt(q.s^2+sum(q.v[1:3].^2))
+    # if (nrm < 0.999)
+    #   println("q2C -- not a unit quaternion nrm = $(nrm)")
+    #   R = eye(3)
+    # else
+      normalize!(q)
+      # nrm = 1.0/nrm
+      # q.s *= nrm
+      # q.v .*= nrm
+      # # x = x*nrm
+      # # y = y*nrm
+      # # z = z*nrm
       w2, x2, y2, z2 = q.s*q.s, q.v[1]*q.v[1], q.v[2]*q.v[2], q.v[3]*q.v[3]
       # y2 = y*y
       # z2 = z*z
@@ -377,7 +379,7 @@ function convert!(R::SO3, q::Quaternion)
       R.R[3,1] = xz-wy
       R.R[3,2] = yz+wx
       R.R[3,3] = w2-x2-y2+z2
-    end
+    # end
   end
   # return SO3(R)
   nothing

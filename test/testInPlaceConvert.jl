@@ -71,7 +71,6 @@ function normalize!(q::Quaternion, tol=1e-6)
 end
 
 
-q = convert(Quaternion, so3(randn(3)))
 
 @code_warntype normalize!(q)
 
@@ -94,8 +93,23 @@ q = convert(Quaternion, so3(randn(3)))
 
 
 q = convert(Quaternion, so3(randn(3)))
+E = convert(Euler, convert(SO3, so3(randn(3))))
 
 
-function convert!(q::Quaternion, E::Euler)
+
+@btime convert!(q, E)
 
 #
+Profile.clear()
+@profiler convert!(q, E)
+
+
+Profile.clear()
+@profiler for i in 1:10^6 convert!(q, E); end
+
+
+
+
+@code_warntype convert!(q, E)
+
+# julia --track-allocation=user testInPlaceConvert.jl
