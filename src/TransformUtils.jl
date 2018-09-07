@@ -46,6 +46,7 @@ export
   ⊖,
   ⊕,
   \,
+  doinversetransform!,
 
   # type aliases
   FloatInt,
@@ -127,6 +128,7 @@ mutable struct Euler
     R::Float64
     P::Float64
     Y::Float64
+    # these will be inconsistent with R, P, Y -- not for public consumption...
     fastconvert::Quaternion
     Euler() = new()
     Euler(s::FloatInt) = new(0.0,0.0,0.0, Quaternion(0))
@@ -149,25 +151,41 @@ mutable struct SE3
   SE3(M::Array{Float64,2}) = new(SO3(M[1:3,1:3]), vec(M[1:3,4]) )
 end
 
-function normalize!(q::Quaternion, tol=1e-6)
-  @inbounds begin
-    mag2 = sum(q.v[1:3].^2) + q.s^2
-    if abs(mag2 - 1.0) > tol
-        mag = sqrt(mag2)
-        q.v[1:3] ./= mag
-        q.s /= mag # q.s /
-    end
+function fast_norm_TU(u)
+  # dest[1] = ...
+  n = length(u)
+  T = eltype(u)
+  s = zero(T)
+  @fastmath @inbounds @simd for i in 1:n
+      s += u[i]^2
   end
+  @fastmath @inbounds return sqrt(s/n)
+end
+
+function normalize!(q::Quaternion, tol=1e-6)
+  # Quaternion(s, [x,y,z])
+  s = q.s^2
+  @fastmath @inbounds @simd for i in 1:3
+      s += q.v[i]^2
+  end
+  @fastmath mag1 = 1.0/sqrt(s)
+  @fastmath @inbounds for i in 1:3
+    q.v[i] .*= mag1
+  end
+  @fastmath q.s *= mag1
   nothing
 end
+
 function normalize(q::Quaternion, tol=0.00001)
   qq = deepcopy(q)
   normalize!(qq,tol)
   return qq
 end
 
+
+
 function normalize(v::Array{Float64,1})
-  return v / norm(v)
+  return v / fast_norm(v)
 end
 
 
@@ -262,6 +280,15 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 \(xi::SE3, xj::SE3) = SE3( matrix(xi) \ matrix(xj) )
 
 \(qi::Quaternion,qj::Quaternion) = q_conj(qi) * qj
+
+function doinversetransform!(dst::Vector{Float64}, aTb::SE3, src::Vector{Float64})::Void
+  At_mul_B!(dst, aTb.R.R, src)
+  @fastmath @inbounds for i in 1:3, j in 1:3
+    dst[i] -= aTb.R.R[j,i]*aTb.t[i]
+  end
+  nothing
+end
+# bR
 
 # comparison functions
 
@@ -454,32 +481,25 @@ function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end
 
-function convert!(q::Quaternion, E::Euler)
-  # Using fixed frame rotation scheme, as used in MIT libbot
-  # q = zeros(4)
+function convert!(q::Quaternion, E::Euler)::Void
 
-  halfroll = E.R/2.0;
-  halfpitch = E.P/2.0;
-  halfyaw = E.Y/2.0;
+  @fastmath halfroll = 0.5*E.R;
+  @fastmath halfpitch = 0.5*E.P;
+  @fastmath halfyaw = 0.5*E.Y;
+  @fastmath sin_r2 = sin(halfroll);
+  @fastmath sin_p2 = sin(halfpitch);
+  @fastmath sin_y2 = sin(halfyaw);
+  @fastmath cos_r2 = cos(halfroll);
+  @fastmath cos_p2 = cos(halfpitch);
+  @fastmath cos_y2 = cos(halfyaw);
 
-  sin_r2 = sin(halfroll);
-  sin_p2 = sin(halfpitch);
-  sin_y2 = sin(halfyaw);
-
-  cos_r2 = cos(halfroll);
-  cos_p2 = cos(halfpitch);
-  cos_y2 = cos(halfyaw);
-
-
-  @inbounds begin
-    q.s = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
-    q.v[1] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
-    q.v[2] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
-    q.v[3] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
-  end
+  @fastmath q.s = cos_r2 * cos_p2 * cos_y2 + sin_r2 * sin_p2 * sin_y2;
+  @fastmath @inbounds q.v[1] = sin_r2 * cos_p2 * cos_y2 - cos_r2 * sin_p2 * sin_y2;
+  @fastmath @inbounds q.v[2] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
+  @fastmath @inbounds q.v[3] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
 
   # Enforce positive scalar quaternions following conversion from Euler angles
-  if (q.s<0.0)
+  @inbounds if (q.s<0.0)
     q.s = -q.s
     q.v[1:3] = -q.v[1:3];
   end
@@ -488,6 +508,41 @@ function convert!(q::Quaternion, E::Euler)
   # return Quaternion(q[1],q[2:4])
   nothing
 end
+  # mutable struct HalfAngles
+  #   halfang::Vector{Float64}
+  #   halfsin::Vector{Float64}
+  #   halfcos::Vector{Float64}
+  #   HalfAngles() = new()
+  #   HalfAngles(::Int) = new(zeros(3), zeros(3), zeros(3))
+  # end
+  # unsafe_reuseE2Q::Vector{HalfAngles}
+  # thr_reuse = E.unsafe_reuseE2Q[Threads.threadid()]
+  # thr_reuse.halfang[1] = 0.5*E.R;
+  # thr_reuse.halfang[2] = 0.5*E.P;
+  # thr_reuse.halfang[3] = 0.5*E.Y;
+  # thr_reuse.halfang[1] = 0.5*E.R;
+  # thr_reuse.halfang[2] = 0.5*E.P;
+  # thr_reuse.halfang[3] = 0.5*E.Y;
+  # thr_reuse.halfsin[1] = sin(thr_reuse.halfang[1]);
+  # thr_reuse.halfsin[2] = sin(thr_reuse.halfang[2]);
+  # thr_reuse.halfsin[3] = sin(thr_reuse.halfang[3]);
+  # thr_reuse.halfcos[1] = cos(thr_reuse.halfang[1]);
+  # thr_reuse.halfcos[2] = cos(thr_reuse.halfang[2]);
+  # thr_reuse.halfcos[3] = cos(thr_reuse.halfang[3]);
+  # @fastmath q.s = thr_reuse.halfcos[1] * thr_reuse.halfcos[2] * thr_reuse.halfcos[3] + thr_reuse.halfsin[1] * thr_reuse.halfsin[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[1] = thr_reuse.halfsin[1] * thr_reuse.halfcos[2] * thr_reuse.halfcos[3] - thr_reuse.halfcos[1] * thr_reuse.halfsin[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[2] = thr_reuse.halfcos[1] * thr_reuse.halfsin[2] * thr_reuse.halfcos[3] + thr_reuse.halfsin[1] * thr_reuse.halfcos[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[3] = thr_reuse.halfcos[1] * thr_reuse.halfcos[2] * thr_reuse.halfsin[3] - thr_reuse.halfsin[1] * thr_reuse.halfsin[2] * thr_reuse.halfcos[3];
+  # @fastmath q.s = thr_reuse.halfcos[1] * thr_reuse.halfcos[2] * thr_reuse.halfcos[3]
+  # @fastmath @inbounds q.v[1] = thr_reuse.halfsin[1] * thr_reuse.halfcos[2] * thr_reuse.halfcos[3]
+  # @fastmath @inbounds q.v[2] = thr_reuse.halfcos[1] * thr_reuse.halfsin[2] * thr_reuse.halfcos[3]
+  # @fastmath @inbounds q.v[3] = thr_reuse.halfcos[1] * thr_reuse.halfcos[2] * thr_reuse.halfsin[3]
+  # @fastmath q.s += thr_reuse.halfsin[1] * thr_reuse.halfsin[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[1] -= thr_reuse.halfcos[1] * thr_reuse.halfsin[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[2] += thr_reuse.halfsin[1] * thr_reuse.halfcos[2] * thr_reuse.halfsin[3];
+  # @fastmath @inbounds q.v[3] -= thr_reuse.halfsin[1] * thr_reuse.halfsin[2] * thr_reuse.halfcos[3];
+
+
 function convert(::Type{Quaternion}, E::Euler)
   q = Quaternion(0)
   convert!(q, E)
