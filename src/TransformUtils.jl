@@ -186,7 +186,7 @@ end
 
 
 function normalize(v::Array{Float64,1})
-  return v / fast_norm(v)
+  return v / fast_norm_TU(v)
 end
 
 
