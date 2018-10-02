@@ -1,7 +1,7 @@
 # dev test oplus and ominus for SE3
 
 using TransformUtils
-using Base.Test
+using Test
 
 
 xi = SE3(0)

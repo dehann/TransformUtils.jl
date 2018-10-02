@@ -285,7 +285,7 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 
 \(qi::Quaternion,qj::Quaternion) = q_conj(qi) * qj
 
-function doinversetransform!(dst::Vector{Float64}, aTb::SE3, src::Vector{Float64})::Void
+function doinversetransform!(dst::Vector{Float64}, aTb::SE3, src::Vector{Float64})::Nothing
   mul!(dst, transpose(aTb.R.R), src)  # At_mul_B!(dst, aTb.R.R, src)
   @fastmath @inbounds for i in 1:3, j in 1:3
     dst[i] -= aTb.R.R[j,i]*aTb.t[i]
@@ -486,7 +486,7 @@ function convert(::Type{Euler}, R::SO3)
   convert(Euler, convert(Quaternion, R))
 end
 
-function convert!(q::Quaternion, E::Euler)::Void
+function convert!(q::Quaternion, E::Euler)::Nothing
 
   @fastmath halfroll = 0.5*E.R;
   @fastmath halfpitch = 0.5*E.P;
