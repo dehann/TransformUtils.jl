@@ -286,7 +286,7 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 \(qi::Quaternion,qj::Quaternion) = q_conj(qi) * qj
 
 function doinversetransform!(dst::Vector{Float64}, aTb::SE3, src::Vector{Float64})::Void
-  At_mul_B!(dst, aTb.R.R, src)
+  mul!(dst, transpose(aTb.R.R), src)  # At_mul_B!(dst, aTb.R.R, src)
   @fastmath @inbounds for i in 1:3, j in 1:3
     dst[i] -= aTb.R.R[j,i]*aTb.t[i]
   end
@@ -455,12 +455,12 @@ function convert!(Eu::Euler, q::Quaternion)
   # c = q.v[2]
   # d = q.v[3]
 
-  Eu.R = atan2(2.0*(q.v[2]*q.v[3] + q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
-  # Eu.R = -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
-  #-atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
+  Eu.R = atan(2.0*(q.v[2]*q.v[3] + q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  # Eu.R = -atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  #-atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
   Eu.P = asin(2.0*(q.v[2]*q.s - q.v[1]*q.v[3]));
-  Eu.Y =  atan2(2.0*(q.v[1]*q.v[2] + q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
-  # Eu.Y = -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  Eu.Y =  atan(2.0*(q.v[1]*q.v[2] + q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  # Eu.Y = -atan(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
 
   nothing
 end
@@ -682,7 +682,7 @@ function convert(::Type{SO3}, alg::so3)
   v = vee(alg)
   nv = norm(v)
   if nv < 1e-3
-    return SO3(expm(alg.S))
+    return SO3(exp(alg.S))
   else
     invnv = 1.0/nv
     return SO3(Matrix{Float64}(LinearAlgebra.I, 3,3) + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
@@ -782,7 +782,7 @@ end
 # function vee!(rv::Vector{Float64,1},T::SE2)
 #   rv[1] = T.t[1]
 #   rv[2] = T.t[2]
-#   rv[3] = wrapRad(atan2(-T.R.R[1,2], T.R.R[1,1]))
+#   rv[3] = wrapRad(atan(-T.R.R[1,2], T.R.R[1,1]))
 #   nothing
 # end
 # function *(a::SE2, b::SE2)
@@ -800,7 +800,7 @@ end
 function se2vee!(retval::Array{Float64,1}, T::Array{Float64,2})
     retval[1] = T[1,3]
     retval[2] = T[2,3]
-    retval[3] = wrapRad(atan2(-T[1,2], T[1,1]))
+    retval[3] = wrapRad(atan(-T[1,2], T[1,1]))
     nothing
 end
 

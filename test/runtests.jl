@@ -64,7 +64,7 @@ end
   @test compare(SO3(0), SO3(0) * Quaternion(0) * so3(0) * AngleAxis(0))
 end
 
-warn("Need better coverage on convert function tests")
+@warn "Need better coverage on convert function tests"
 
 @testset "Compare SO3 and quaternion rotations" begin
   q = Quaternion(0)

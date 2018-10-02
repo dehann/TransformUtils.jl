@@ -1,5 +1,5 @@
 using TransformUtils
-using Base: Test
+using Test
 
 
 @testset "test in-place and efficient inverse SE3..." begin
