@@ -2,7 +2,10 @@ __precompile__(true)
 
 module TransformUtils
 
-import Base: convert, promote_rule, *, transpose, normalize, normalize!, \, vec
+using LinearAlgebra
+
+import Base: convert, promote_rule, *, \, vec
+import LinearAlgebra: transpose, normalize, normalize!
 
 export
   Quaternion,
@@ -102,7 +105,7 @@ const AxisAngle = AngleAxis
 mutable struct SO3
     R::Array{Float64,2}
     SO3() = new()
-    SO3(dummy::FloatInt) = new(eye(3))
+    SO3(dummy::FloatInt) = new(Matrix{Float64}(LinearAlgebra.I, 3,3))
     SO3(r::Array{Float64,2}) = new(r)
 end
 
@@ -197,7 +200,7 @@ function matrix!(M::Array{Float64,2}, a::SE3)
 end
 # Return 4x4 matrix version of SE3 transform, also see matrix! for in place version
 function matrix(a::SE3)
-  T = eye(4)
+  T = Matrix{Float64}(LinearAlgebra.I,4,4)
   matrix!(T, a)
   return T
 end
@@ -215,7 +218,7 @@ function q_conj(q::Quaternion)
 end
 
 
-transpose(a::SO3) = SO3(a.R')
+transpose(a::SO3) = SO3(collect(a.R')) # TODO use adjoint instead of collect
 inverse(a::SO3) = transpose(a)
 
 
@@ -267,12 +270,12 @@ end
 *(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
-inverse(a::SE3) = SE3( matrix(a) \ eye(4) )
+inverse(a::SE3) = SE3( matrix(a) \ Matrix{Float64}(LinearAlgebra.I,4,4) )
 # TODO -- optimize this, and abstraction is wrong here
 # Xj = Xi ⊕ ΔX
 # Xj ⊖ ΔX = Xi
 # Xi \ Xj = ΔX   # ⊖ Xi ⊕ Xj = ΔX
-A_invB(a::SE3, b::SE3) = SE3( ( matrix(b)' \ (matrix(a)') )' )
+A_invB(a::SE3, b::SE3) = SE3( collect( ( matrix(b)' \ (matrix(a)') )' )  )
 ominus(xi::SE3, xj::SE3) = A_invB(xi,xj)
 oplus(xi::SE3, xj::SE3) = xi*xj
 ⊖(xi::SE3, xj::SE3) = A_invB(xi,xj)
@@ -283,7 +286,7 @@ oplus(xi::SE3, xj::SE3) = xi*xj
 \(qi::Quaternion,qj::Quaternion) = q_conj(qi) * qj
 
 function doinversetransform!(dst::Vector{Float64}, aTb::SE3, src::Vector{Float64})::Void
-  At_mul_B!(dst, aTb.R.R, src)
+  mul!(dst, transpose(aTb.R.R), src)  # At_mul_B!(dst, aTb.R.R, src)
   @fastmath @inbounds for i in 1:3, j in 1:3
     dst[i] -= aTb.R.R[j,i]*aTb.t[i]
   end
@@ -293,7 +296,7 @@ end
 
 # comparison functions
 
-compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a*transpose(b)).R-eye(3)) < tol
+compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a.R*transpose(b.R))-Matrix{Float64}(LinearAlgebra.I,3,3)) < tol
 
 # function compare(a::SE3, b::SE3; tol::Float64=1e-14)
 #   norm(a.t-b.t) < tol ? nothing : return false
@@ -349,7 +352,7 @@ function convert!(R::SO3, q::Quaternion)
     # nrm = sqrt(q.s^2+sum(q.v[1:3].^2))
     # if (nrm < 0.999)
     #   println("q2C -- not a unit quaternion nrm = $(nrm)")
-    #   R = eye(3)
+    #   R = Matrix{Float64}(LinearAlgebra.I, 3,3)
     # else
       normalize!(q)
       # nrm = 1.0/nrm
@@ -452,12 +455,12 @@ function convert!(Eu::Euler, q::Quaternion)
   # c = q.v[2]
   # d = q.v[3]
 
-  Eu.R = atan2(2.0*(q.v[2]*q.v[3] + q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
-  # Eu.R = -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
-  #-atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan2(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
+  Eu.R = atan(2.0*(q.v[2]*q.v[3] + q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  # Eu.R = -atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2)
+  #-atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s),1.0-2.0*(q.v[1]^2+q.v[2]^2)); # -atan(2.0*(q.v[2]*q.v[3] - q.v[1]*q.s), q.s*q.s - q.v[1]^2 - q.v[2]^2 + q.v[3]^2) #numerically more stable
   Eu.P = asin(2.0*(q.v[2]*q.s - q.v[1]*q.v[3]));
-  Eu.Y =  atan2(2.0*(q.v[1]*q.v[2] + q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
-  # Eu.Y = -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan2(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  Eu.Y =  atan(2.0*(q.v[1]*q.v[2] + q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
+  # Eu.Y = -atan(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s),1.0-2.0*(q.v[2]^2+q.v[3]^2)); # -atan(2.0*(q.v[1]*q.v[2] - q.v[3]*q.s), q.s^2 + q.v[1]^2 - q.v[2]^2 - q.v[3]^2)
 
   nothing
 end
@@ -582,7 +585,7 @@ end
 
 function expmOwn(alg::so3)
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = eye(3)
+  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-6)
     #1E-6 is chosen because double numerical LSB is around 1E-18 for nominal values [-pi..pi] and (1E-7)^2 is at 1E-14, but 1E-7 rad/s is 0.02 deg/h
     R = I + sin(v_norm)/v_norm*alg.S + (1.0-cos(v_norm))/(v_norm^2)*(alg.S^2)
@@ -626,7 +629,7 @@ end
 function rightJacExmap(alg::so3)
   Gam = alg.S
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = eye(3)
+  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-7)
     Jr = I + (v_norm-sin(v_norm))/(v_norm^3)*(Gam^2) - (1.0-cos(v_norm))/(v_norm^2+0.0)*Gam
   else
@@ -638,7 +641,7 @@ end
 function rightJacExmapinv(alg::so3)
   Gam = alg.S
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = eye(3)
+  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-7)
     brace = (  1.0/(v_norm^2) - (1.0+cos(v_norm))/(2.0*v_norm*sin(v_norm))  )*Gam
     Jr_inv = I + 0.5*Gam + brace*Gam
@@ -663,26 +666,26 @@ end
 
 # See Julia's implementation the matrix exponential function -- expm!()
 # https://github.com/acroy/julia/blob/0bce8951f19e8f47d361e73b5b5bd6283926c01b/base/linalg/dense.jl
-expmOwnT(M::Array{Float64,2}) = (eye(size(M,1)) + 0.5*M)*((eye(size(M,1)) - 0.5*M) \ eye(size(M,1)));
-expmOwn1(M::Array{Float64,2}) = eye(size(M,1)) + M;
-expmOwn2(M::Array{Float64,2}) = eye(size(M,1)) + M + 0.5*(M^2);
+expmOwnT(M::Array{Float64,2}) = (Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + 0.5*M)*((Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) - 0.5*M) \ Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)));
+expmOwn1(M::Array{Float64,2}) = Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M;
+expmOwn2(M::Array{Float64,2}) = Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + 0.5*(M^2);
 function expmOwn3(M::Array{Float64,2})
   M052 = 0.5*M^2;
-  return eye(size(M,1)) + M + M052 + M052*M/3.0;
+  return Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + M052 + M052*M/3.0;
 end
 function expmOwn4(M::Array{Float64,2})
   M052 = 0.5*M^2;
-  return eye(size(M,1)) + M + M052 + M052*M/3.0 + M052*M052/6.0
+  return Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + M052 + M052*M/3.0 + M052*M052/6.0
 end
 
 function convert(::Type{SO3}, alg::so3)
   v = vee(alg)
   nv = norm(v)
   if nv < 1e-3
-    return SO3(expm(alg.S))
+    return SO3(exp(alg.S))
   else
     invnv = 1.0/nv
-    return SO3(eye(3) + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
+    return SO3(Matrix{Float64}(LinearAlgebra.I, 3,3) + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
   end
 end
 
@@ -779,7 +782,7 @@ end
 # function vee!(rv::Vector{Float64,1},T::SE2)
 #   rv[1] = T.t[1]
 #   rv[2] = T.t[2]
-#   rv[3] = wrapRad(atan2(-T.R.R[1,2], T.R.R[1,1]))
+#   rv[3] = wrapRad(atan(-T.R.R[1,2], T.R.R[1,1]))
 #   nothing
 # end
 # function *(a::SE2, b::SE2)
@@ -787,7 +790,7 @@ end
 # end
 
 function SE2(X::Array{Float64,1})
-    T = eye(3)
+    T = Matrix{Float64}(LinearAlgebra.I, 3,3)
     T[1:2,1:2] = R(X[3])
     T[1,3] = X[1]
     T[2,3] = X[2]
@@ -797,7 +800,7 @@ end
 function se2vee!(retval::Array{Float64,1}, T::Array{Float64,2})
     retval[1] = T[1,3]
     retval[2] = T[2,3]
-    retval[3] = wrapRad(atan2(-T[1,2], T[1,1]))
+    retval[3] = wrapRad(atan(-T[1,2], T[1,1]))
     nothing
 end
 

@@ -1,5 +1,6 @@
 using TransformUtils
-using Base.Test
+using LinearAlgebra
+using Test
 
 @testset "Constructors SO3, Quaternion, AngleAxis... " begin
   q = Quaternion(0)
@@ -45,7 +46,7 @@ end
   @test !compare(Quaternion(0),Quaternion(0,[1;0;0]))
   @test compare(SO3(0),SO3(0))
   IrotSO3 = SO3(0)
-  for i in 1:1000
+  for i in 1:1 #000
     r = 0.1*randn(3)
     if norm(r) > 1e-10
       @test !compare(IrotSO3, convert(SO3,so3( r )) )
@@ -63,7 +64,7 @@ end
   @test compare(SO3(0), SO3(0) * Quaternion(0) * so3(0) * AngleAxis(0))
 end
 
-warn("Need better coverage on convert function tests")
+@warn "Need better coverage on convert function tests"
 
 @testset "Compare SO3 and quaternion rotations" begin
   q = Quaternion(0)
@@ -88,7 +89,7 @@ warn("Need better coverage on convert function tests")
   end
 end
 
-@testset "Basic SE3 mechanics" begin
+ @testset "Basic SE3 mechanics" begin
   # SE3 tests
   a = SE3([0;0;0],SO3(0))
   b = SE3([1;0;0],SO3(0))
@@ -99,7 +100,7 @@ end
   ap = SE3(a.t, a.R*so3(0.1*randn(3)))
   @test !compare(ap,a)
 
-  back = ap*b*SE3(zeros(3),transpose(ap.R))
+  back = ap*b*SE3(zeros(3), transpose(ap.R) )
   @test compare(SO3(0),back.R)
 end
 
