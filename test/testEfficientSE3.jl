@@ -6,7 +6,7 @@ using Base: Test
 
 dest = zeros(3)
 src = [1.0;0;0]
-wTb = SE3([1.0;0;0],SO3(eye(3)))
+wTb = SE3([1.0;0;0],SO3(Matrix{Float64}(LinearAlgebra.I,3,3)))
 
 doinversetransform!(dest, wTb, src)
 
