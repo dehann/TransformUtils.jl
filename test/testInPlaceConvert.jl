@@ -1,7 +1,7 @@
 # profile/test conversion utils
 
 using TransformUtils
-using Base.Test
+using Test
 using BenchmarkTools, ProfileView
 
 R = SO3(0)
