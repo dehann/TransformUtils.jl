@@ -597,8 +597,8 @@ end
 
 function logmap(grp::SO3)
   R = grp.R
-  tr = trace(R)
-  if abs(tr+1.0) < 1e-10
+  tra = LinearAlgebra.tr(R)
+  if abs(tra+1.0) < 1e-10
     if abs(R[3,3]+1.0) > 1e-10
       ret = (pi / sqrt(2.0+2.0*R[3,3] )) * [R[1,3]; R[2,3]; (1.0+R[3,3])]
     else
@@ -609,9 +609,9 @@ function logmap(grp::SO3)
       end
     end
   else
-    tr_3 = tr-3.0
+    tr_3 = tra-3.0
     if (tr_3<-1e-7)
-      theta = acos((tr-1.0)/2.0)
+      theta = acos((tra-1.0)/2.0)
       magnitude = theta/(2.0*sin(theta))
     else
       magnitude = 0.5 - tr_3*tr_3/12.0
