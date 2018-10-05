@@ -693,8 +693,7 @@ end
 function wrapRad(th::Float64)
   if th >= pi
     th -= 2.0*pi
-  end
-  if th < -pi
+  elseif th < -pi
     th += 2.0*pi
   end
   return th
