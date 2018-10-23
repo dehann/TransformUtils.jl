@@ -120,6 +120,28 @@ end
   @test abs(ce.R - pi/4) < 1e-8
 end
 
+@testset "test SO3 logmap..." begin
+
+global R0 = SO3(0)
+@test norm(vee(convert(so3, R0))) < 1e-8
+
+for i in 1:100
+  val = logmap(convert(SO3,so3(begin global a = 1e-10*randn(3) end))) - a
+  @test norm(val) < 1e-8
+end
+
+for i in 1:100
+  val = logmap(convert(SO3,so3(begin global a = 0.0001*randn(3) end))) - a
+  @test norm(val) < 1e-8
+end
+
+for i in 1:100
+  val = logmap(convert(SO3,so3(begin global a = 0.5*randn(3) end))) - a
+  @test norm(val) < 1e-8
+end
+
+end
+
 include("testEfficientSE3.jl")
 
 
