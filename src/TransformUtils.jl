@@ -609,12 +609,15 @@ function logmap(grp::SO3)
       end
     end
   else
+    tra = round(tra, digits=12)
     tr_3 = tra-3.0
-    if (tr_3<-1e-7)
-      theta = acos((tra-1.0)/2.0)
-      magnitude = theta/(2.0*sin(theta))
-    else
+    # TODO: this sign might have been the wrong way round, changed on 10/10/2018 for Taylor series when tr_3 small
+    ## also introduced abs(tr_3) rather than tr_3 < 1e-7, which looks to be a bug
+    if (abs(tr_3) < -1e-7)
       magnitude = 0.5 - tr_3*tr_3/12.0
+    else
+      theta = acos((tra-1.0)/2.0)
+      magnitude = theta/(2.0*sin(theta)) # 0.5/sinc(theta)
     end
     ret = magnitude*[ (R[3,2]-R[2,3]); (R[1,3]-R[3,1]); (R[2,1]-R[1,2])]
   end
@@ -690,7 +693,10 @@ function convert(::Type{SO3}, alg::so3)
 end
 
 
+
 function wrapRad(th::Float64)
+  th = rem(th, 2pi) # returns in range (-2pi,2pi)
+  # now move to range [-pi, pi)
   if th >= pi
     th -= 2.0*pi
   elseif th < -pi
@@ -698,6 +704,13 @@ function wrapRad(th::Float64)
   end
   return th
 end
+# rem(pi, 2pi)
+# rem(4pi, 2pi)
+# rem(4.5pi, 2pi)
+# rem(-4.5pi, 2pi)
+# rem(7pi, 2pi)
+# rem(-7pi, 2pi)
+# rem(-pi, 2pi)
 
 R(th::Float64) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
 R(;x::Float64=0.0,y::Float64=0.0,z::Float64=0.0) = convert(SO3, so3([x,y,z]))
