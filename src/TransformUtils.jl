@@ -613,7 +613,7 @@ function logmap(grp::SO3)
     tr_3 = tra-3.0
     # TODO: this sign might have been the wrong way round, changed on 10/10/2018 for Taylor series when tr_3 small
     ## also introduced abs(tr_3) rather than tr_3 < 1e-7, which looks to be a bug
-    if (abs(tr_3) < -1e-7)
+    if (abs(tr_3) < 1e-7)
       magnitude = 0.5 - tr_3*tr_3/12.0
     else
       theta = acos((tra-1.0)/2.0)
