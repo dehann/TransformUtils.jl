@@ -141,6 +141,22 @@ mutable struct Euler
     Euler(v::VectorFloatInt, q::Quaternion) = new(v[1],v[2],v[3], q)
 end
 
+#explicit convertion constructors
+SO3(ss::so3) = convert(SO3, ss)
+SO3(A::AngleAxis) = convert(SO3, A)
+SO3(q::Quaternion) = convert(SO3, q)
+SO3(E::Euler) = convert(SO3, E)
+
+Quaternion(ss::so3) = convert(Quaternion, ss)
+Quaternion(R::SO3) = convert(Quaternion, R)
+Quaternion(A::AngleAxis) = convert(Quaternion, A)
+Quaternion(E::Euler) = convert(Quaternion, E)
+
+AngleAxis(R::SO3) = convert(AngleAxis, R)
+AngleAxis(q::Quaternion) = convert(AngleAxis, q)
+
+Euler(SO3::SO3) = convert(Euler, SO3)
+Euler(q::Quaternion) = convert(Euler, q)
 
 mutable struct SE3
   R::SO3
