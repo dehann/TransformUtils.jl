@@ -11,6 +11,28 @@ using Test
   SE3(T.t, q)
   SE3(T.t, R)
   SE3(T.t, A)
+  E = Euler(0)
+
+  RfromE = SO3(E)
+  RfromQ = SO3(q)
+  RfromA = SO3(A)
+  Rfromss = SO3(ss)
+
+  QfromE = Quaternion(E)
+  QfromR = Quaternion(R)
+  QfromA = Quaternion(A)
+  Qfromss = Quaternion(ss)
+
+  # AfromE = AngleAxis(E) # Convert not implemented yet
+  AfromR = AngleAxis(R)
+  AfromQ = AngleAxis(q)
+  # Afromss = AngleAxis(ss) # Convert not implemented yet
+
+  EfromR = Euler(R)
+  EfromQ = Euler(q)
+  # EfromA = Euler(A) # Convert not implemented yet
+  # Efromss = Euler(ss) # Convert not implemented yet
+
 end
 
 @testset "Ensure basic quaternion operations hold" begin
