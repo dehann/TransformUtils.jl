@@ -255,6 +255,10 @@ function *(a::SE3, b::SE3)
   return SE3(vec(a.R.R*b.t + a.t), a.R*b.R)
 end
 
+function *(T::SE3, p::Vector{Float64})
+  @fastmath return T.R.R*p + T.t
+end
+
 function *(q1::Quaternion, q2::Quaternion)
   ee  = [q1.s; q1.v] * [q2.s; q2.v]'
   w = ee[1,1] - ee[2,2] - ee[3,3] - ee[4,4]
