@@ -5,7 +5,7 @@ module TransformUtils
 using LinearAlgebra
 
 import Base: convert, promote_rule, *, \, vec
-import LinearAlgebra: transpose, normalize, normalize!
+import LinearAlgebra: transpose, adjoint, normalize, normalize!
 
 export
   Quaternion,
@@ -92,6 +92,9 @@ mutable struct Quaternion
     Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
+Quaternion(v::VectorFloatInt) = Quaternion(v[1],v[2:4])
+Quaternion(v::NTuple{4,Float64}) = Quaternion(v[1],[v[2:4]...])
+
 mutable struct AngleAxis
     theta::Float64
     ax::Array{Float64,1}
@@ -108,6 +111,9 @@ mutable struct SO3
     SO3(dummy::FloatInt) = new(Matrix{Float64}(LinearAlgebra.I, 3,3))
     SO3(r::Array{Float64,2}) = new(r)
 end
+
+# Only I UniformScaling is applicable, eg 3*I : [3 0 0; 0 3 0; 0 0 3] does not exist in SO3
+SO3(us::UniformScaling) = SO3(Matrix{Float64}(I, 3,3))
 
 mutable struct so3
     S::Array{Float64,2}
@@ -169,6 +175,9 @@ mutable struct SE3
   SE3(v::VectorFloatInt, q::Quaternion) = new(convert(SO3,q), v[1:3] ) # maybe replace with promote via dispatch
   SE3(M::Array{Float64,2}) = new(SO3(M[1:3,1:3]), vec(M[1:3,4]) )
 end
+
+SE3(us::UniformScaling) = SE3(zeros(Float64,3), SO3(I))
+SE3(t::VectorFloatInt, us::UniformScaling) = SE3(t, SO3(I))
 
 function fast_norm_TU(u)
   # dest[1] = ...
@@ -234,7 +243,8 @@ function q_conj(q::Quaternion)
 end
 
 
-transpose(a::SO3) = SO3(collect(a.R')) # TODO use adjoint instead of collect
+transpose(a::SO3) = SO3(transpose(a.R)[:,:]) # TODO use adjoint instead of collect
+adjoint(a::SO3) = SO3(a.R'[:,:])
 inverse(a::SO3) = transpose(a)
 
 
@@ -286,7 +296,7 @@ end
 *(a::so3, bq::Quaternion) = convert(Quaternion, convert(SO3,a) )*bq
 *(a::so3, b::AngleAxis) = convert(AngleAxis, convert(SO3,a))*b
 
-inverse(a::SE3) = SE3( matrix(a) \ Matrix{Float64}(LinearAlgebra.I,4,4) )
+inverse(a::SE3) = SE3( matrix(a) \ I )
 # TODO -- optimize this, and abstraction is wrong here
 # Xj = Xi ⊕ ΔX
 # Xj ⊖ ΔX = Xi
@@ -312,7 +322,7 @@ end
 
 # comparison functions
 
-compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm((a.R*transpose(b.R))-Matrix{Float64}(LinearAlgebra.I,3,3)) < tol
+compare(a::SO3, b::SO3; tol::Float64=1e-14) = norm(a.R*transpose(b.R) - I) < tol
 
 # function compare(a::SE3, b::SE3; tol::Float64=1e-14)
 #   norm(a.t-b.t) < tol ? nothing : return false
@@ -601,7 +611,7 @@ end
 
 function expmOwn(alg::so3)
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
+  # I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-6)
     #1E-6 is chosen because double numerical LSB is around 1E-18 for nominal values [-pi..pi] and (1E-7)^2 is at 1E-14, but 1E-7 rad/s is 0.02 deg/h
     R = I + sin(v_norm)/v_norm*alg.S + (1.0-cos(v_norm))/(v_norm^2)*(alg.S^2)
@@ -648,7 +658,7 @@ end
 function rightJacExmap(alg::so3)
   Gam = alg.S
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
+  # I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-7)
     Jr = I + (v_norm-sin(v_norm))/(v_norm^3)*(Gam^2) - (1.0-cos(v_norm))/(v_norm^2+0.0)*Gam
   else
@@ -660,7 +670,7 @@ end
 function rightJacExmapinv(alg::so3)
   Gam = alg.S
   v_norm = sqrt(alg.S[1,2]^2 + alg.S[1,3]^2 + alg.S[2,3]^2)
-  I = Matrix{Float64}(LinearAlgebra.I, 3,3)
+  # I = Matrix{Float64}(LinearAlgebra.I, 3,3)
   if (v_norm>1e-7)
     brace = (  1.0/(v_norm^2) - (1.0+cos(v_norm))/(2.0*v_norm*sin(v_norm))  )*Gam
     Jr_inv = I + 0.5*Gam + brace*Gam
@@ -686,15 +696,15 @@ end
 # See Julia's implementation the matrix exponential function -- expm!()
 # https://github.com/acroy/julia/blob/0bce8951f19e8f47d361e73b5b5bd6283926c01b/base/linalg/dense.jl
 expmOwnT(M::Array{Float64,2}) = (Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + 0.5*M)*((Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) - 0.5*M) \ Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)));
-expmOwn1(M::Array{Float64,2}) = Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M;
-expmOwn2(M::Array{Float64,2}) = Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + 0.5*(M^2);
+expmOwn1(M::Array{Float64,2}) = I + M;
+expmOwn2(M::Array{Float64,2}) = I + M + 0.5*(M^2);
 function expmOwn3(M::Array{Float64,2})
   M052 = 0.5*M^2;
-  return Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + M052 + M052*M/3.0;
+  return I + M + M052 + M052*M/3.0;
 end
 function expmOwn4(M::Array{Float64,2})
   M052 = 0.5*M^2;
-  return Matrix{Float64}(LinearAlgebra.I,size(M,1),size(M,1)) + M + M052 + M052*M/3.0 + M052*M052/6.0
+  return I + M + M052 + M052*M/3.0 + M052*M052/6.0
 end
 
 function convert(::Type{SO3}, alg::so3)
@@ -704,7 +714,7 @@ function convert(::Type{SO3}, alg::so3)
     return SO3(exp(alg.S))
   else
     invnv = 1.0/nv
-    return SO3(Matrix{Float64}(LinearAlgebra.I, 3,3) + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
+    return SO3(I + invnv*(sin(nv)*alg.S + invnv*(1.0-cos(nv))*(alg.S^2) ) )
   end
 end
 
