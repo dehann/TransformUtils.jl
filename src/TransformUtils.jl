@@ -92,6 +92,9 @@ mutable struct Quaternion
     Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
 end
 
+Quaternion(v::VectorFloatInt) = Quaternion(v[1],v[2:4])
+Quaternion(v::NTuple{4,Float64}) = Quaternion(v[1],[v[2:4]...])
+
 mutable struct AngleAxis
     theta::Float64
     ax::Array{Float64,1}
