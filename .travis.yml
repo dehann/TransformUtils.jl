@@ -1,7 +1,13 @@
 language: julia
+
+arch:
+  - amd64
+  - arm64
+
 os:
   - linux
   - osx
+
 julia:
   - 1.0
   - 1.2
@@ -14,6 +20,7 @@ notifications:
 matrix:
   allow_failures:
     - julia: nightly
+    - arch: arm64
 
 jobs:
   fast_finish: true
