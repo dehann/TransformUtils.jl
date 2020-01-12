@@ -1,0 +1,14 @@
+name = "TransformUtils"
+uuid = "9b8138ad-1b09-5408-aa39-e87ed6d21b63"
+keywords = ["coordinates", "reference frames", "SE2", "SO3", "quaternion", "robotics", "navigation"]
+desc = "Handy coordinate transformation tools between various conventions."
+version = "0.2.2"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
