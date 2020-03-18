@@ -748,9 +748,9 @@ end
 # rem(-pi, 2pi)
 
 R(th::Real) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-R(;x::Float64=0.0,y::Float64=0.0,z::Float64=0.0) = convert(SO3, so3([x,y,z]))
+R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) = convert(SO3, so3([x,y,z]))
 
-function vee!(rv::Vector{Float64}, alg::so3)
+function vee!(rv::Vector{<:Real}, alg::so3)
   rv[1] = -alg.S[2,3]
   rv[2] = alg.S[1,3]
   rv[3] = -alg.S[1,2]
@@ -763,7 +763,7 @@ function vee(alg::so3)
    return rv
 end
 
-function vee!(rv::Vector{Float64}, q::Quaternion)
+function vee!(rv::Vector{<:Real}, q::Quaternion)
   rv[1] = q.s
   rv[2:4] = q.v[1:3]
   nothing
@@ -851,7 +851,6 @@ function se2vee!(retval::AbstractArray{<:Real,1}, T::AbstractArray{<:Real,2})
     nothing
 end
 
-
 function se2vee(T::AbstractArray{<:Real,2})
     # retval = zeros(3)
     # se2vee!(retval, T)
@@ -862,13 +861,13 @@ end
 
 # TODO Switch to using SE(2) oplus
 # DX = [transx, transy, theta]
-function addPose2Pose2!(retval::Array{Float64,1}, x::Array{Float64,1}, dx::Array{Float64,1})
+function addPose2Pose2!(retval::Array{<:Real,1}, x::Array{<:Real,1}, dx::Array{<:Real,1})
   X = SE2(x)
   DX = SE2(dx)
   se2vee!(retval, X*DX)
   nothing
 end
-function addPose2Pose2(x::Array{Float64,1}, dx::Array{Float64,1})
+function addPose2Pose2(x::Array{<:Real,1}, dx::Array{<:Real,1})
     retval = zeros(3)
     addPose2Pose2!(retval, x, dx)
     return retval
