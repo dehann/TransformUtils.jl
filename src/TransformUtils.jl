@@ -724,16 +724,21 @@ end
 
 
 
-function wrapRad(th::Float64)
-  th = rem(th, 2pi) # returns in range (-2pi,2pi)
-  # now move to range [-pi, pi)
-  if th >= pi
-    th -= 2.0*pi
-  elseif th < -pi
-    th += 2.0*pi
-  end
-  return th
+function wrapRad(th::Real)
+  #rem is not the best function here so using rem2pi(x, RoundNearest) returns in interval [-π, π]
+  #TODO is [-π, π] a problem or should it strictly be [-pi, pi)
+  return rem2pi(th, RoundNearest)
 end
+# function wrapRad(th::Float64)
+  # th = rem(th, 2pi) # returns in range (-2pi,2pi)
+  # now move to range [-pi, pi)
+  # if th >= pi
+  #   th -= 2.0*pi
+  # elseif th < -pi
+  #   th += 2.0*pi
+  # end
+  # return th
+# end
 # rem(pi, 2pi)
 # rem(4pi, 2pi)
 # rem(4.5pi, 2pi)
@@ -831,25 +836,26 @@ end
 #   return SE2(R.R*b.R, vec(a.R.R*b.t + a.t))
 # end
 
-function SE2(X::Array{<:Real,1})
-    T = Matrix{Float64}(LinearAlgebra.I, 3,3)
+function SE2(X::AbstractArray{P,1}) where P <: Real
+    T = Matrix{P}(LinearAlgebra.I, 3,3)
     T[1:2,1:2] = R(X[3])
     T[1,3] = X[1]
     T[2,3] = X[2]
     return T
 end
 
-function se2vee!(retval::Array{<:Real,1}, T::Array{<:Real,2})
+function se2vee!(retval::AbstractArray{<:Real,1}, T::AbstractArray{<:Real,2})
     retval[1] = T[1,3]
     retval[2] = T[2,3]
     retval[3] = wrapRad(atan(-T[1,2], T[1,1]))
     nothing
 end
 
-function se2vee(T::Array{<:Real,2})
-    retval = zeros(3)
-    se2vee!(retval, T)
-    return retval
+function se2vee(T::AbstractArray{<:Real,2})
+    # retval = zeros(3)
+    # se2vee!(retval, T)
+    # return retval
+    return [T[1,3], T[2,3], wrapRad(atan(-T[1,2], T[1,1]))]
 end
 
 
