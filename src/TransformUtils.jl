@@ -68,8 +68,10 @@ export
   R,
   SE2,
   se2vee,
-  se2vee!
+  se2vee!,
+  TU
 
+const TU = TransformUtils
 
 
   function skew(v::Array{Float64,1})
