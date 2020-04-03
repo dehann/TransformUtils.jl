@@ -83,7 +83,7 @@ const TU = TransformUtils
   end
 
 const FloatInt = Union{Float64,Int}
-const VectorFloatInt = Union{Vector{Float64},Vector{Int}}
+const VectorFloatInt = AbstractVector{<:Real} # Union{Vector{Float64},Vector{Int}}
 
 
 mutable struct Quaternion
