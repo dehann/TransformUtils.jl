@@ -839,7 +839,7 @@ end
 # end
 
 function SE2(X::AbstractArray{P,1}) where P <: Real
-    T = Matrix{P}(LinearAlgebra.I, 3,3)
+    T = Matrix{Float64}(LinearAlgebra.I, 3,3)
     T[1:2,1:2] = R(X[3])
     T[1,3] = X[1]
     T[2,3] = X[2]
