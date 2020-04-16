@@ -8,6 +8,10 @@
 
 Lie groups and algebra, quaternions, Angle Axis and Euler angles; products and compare also available.
 
+## NOTE
+
+This package should become a utility wrapper around [`CoordinateTransformations.jl`](https://github.com/JuliaGeometry/CoordinateTransformations.jl) and probably change name to `CoordinateTransformationsUtilities.jl`.
+
 ## Introduction
 
 This package is a growing collection of Lie Group/Algebra, Quaternion, Euler, AxisAngle representations. Including convert functions between each, and overloading operators for those sets. The package already includes exponential, logarithm maps and Jacobians for Lie SO(3). SE(3) mostly complete.
