@@ -8,9 +8,9 @@
 
 Lie groups and algebra, quaternions, Angle Axis and Euler angles; products and compare also available.
 
-## NOTE
+## NOTICE
 
-This package should become a utility wrapper around [`CoordinateTransformations.jl`](https://github.com/JuliaGeometry/CoordinateTransformations.jl) and probably change name to `CoordinateTransformationsUtilities.jl`.
+(4Q2020) This package should become a utility wrapper around [`CoordinateTransformations.jl`](https://github.com/JuliaGeometry/CoordinateTransformations.jl) and probably change name to `CoordinateTransformationsUtilities.jl`.  Also see [`Rotations.jl`](https://github.com/JuliaGeometry/Rotations.jl) which also supports type conversions.  Work is ongoing to consolidate with [JuliaManifolds](https://github.com/JuliaManifolds/Manifolds.jl).
 
 ## Introduction
 
