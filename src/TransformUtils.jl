@@ -3,9 +3,11 @@ __precompile__(true)
 module TransformUtils
 
 using LinearAlgebra
+using ManifoldsBase
 
 import Base: convert, promote_rule, *, \, vec
 import LinearAlgebra: transpose, adjoint, normalize, normalize!
+import ManifoldsBase: vee, vee!
 
 export
   Quaternion,
