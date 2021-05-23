@@ -38,6 +38,7 @@ export
   rotate,
   wrapRad,
   logmap,
+  logmap_SO2,
   rightJacExmap,
   rightJacExmapinv,
   deltaso3vee,
@@ -727,6 +728,12 @@ function convert(::Type{SO3}, alg::so3)
 end
 
 
+
+# manifold distance, add, and subtract
+function logmap_SO2(Rl::Matrix{<:Real})
+  ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
+  -sign(Rl[2,1])*acos(ct)
+end
 
 function wrapRad(th::Real)
   #rem is not the best function here so using rem2pi(x, RoundNearest) returns in interval [-π, π]
