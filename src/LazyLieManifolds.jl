@@ -70,10 +70,9 @@ function se(X::Vector)
     N = length(X)
     
     for D in 2:3
-        dim = manifold_dimension(SpecialEuclidean(D))
-        if dim == N
+        if manifold_dimension(SpecialEuclidean(D)) == N
             M = SpecialEuclidean(D)
-            e = _identity_SE(dim, eltype(X)).p
+            e = _identity_SE(D, eltype(X)).p
             _X = hat(M, e, X)
         
             return se{D, typeof(_X)}(_X)
