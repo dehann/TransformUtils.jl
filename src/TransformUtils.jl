@@ -85,6 +85,7 @@ const LA = LinearAlgebra
 
 include("LazyLieManifolds.jl")
 include("Legacy.jl")
+include("LegacySpecialEuclidean.jl")
 
 
 

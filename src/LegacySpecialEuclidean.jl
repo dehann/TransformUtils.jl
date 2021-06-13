@@ -4,12 +4,6 @@
 
 
 
-function deltaso3vee(aQb::Quaternion,aQc::Quaternion)
-  dq = aQb\aQc
-  s = logmap(dq)
-end
-
-
 
 # TODO -- Change to type and overload the operators
 # TODO -- uncomment
