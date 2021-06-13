@@ -75,7 +75,9 @@ export
   SE2,
   se2vee,
   se2vee!,
-  TU
+  TU,
+  veePose3,
+  veePose
 
 const TU = TransformUtils
 const LA = LinearAlgebra
