@@ -284,16 +284,6 @@ function PosePose_x(ⁱmⱼ::SE{N}, ʷxᵢ::SE{N}, ʷxⱼ::SE{N}) where N
     return vee(X)
 end
 
-# this is as above but calculation on tangent space
-function PosePose(Xmeas, p::SE{N}, q::SE{N}) where N
-
-    # Xmeas is an algebra (in coordinates) at p to q
-    M = manifold(p)
-    Xpred = log(M, p[], q[])
-    return Xmeas .- vee(M, p[], Xpred)
-    
-end
-
 
 function Pose2Pose2(meas, wxi, wxj)
     wTjhat = SE2(wxi)*SE2(meas)
