@@ -683,7 +683,7 @@ end
 # rem(-pi, 2pi)
 
 # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-@deprecate R(th::Real) M=SpecialOrthogonal(2); e0=identity_element(M); exp(M,e0, hat(M,e0,0.1))
+@deprecate R(th::Real) (M=SpecialOrthogonal(2); e0=identity_element(M); exp(M,e0, hat(M,e0,0.1)))
 # convert(SO3, so3([x,y,z]))
 @deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3); e0=identity_element(M); exp(M,e0,hat(M, e0,[x,y,z]))) |> SO3
 
