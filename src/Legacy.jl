@@ -683,9 +683,9 @@ end
 # rem(-pi, 2pi)
 
 # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-@deprecate R(th::Real) (M=SpecialOrthogonal(2); e0=identity_element(M); exp(M,e0, hat(M,e0,th)))
+@deprecate R(th::Real) (M=SpecialOrthogonal(2); exp_lie(M, hat(M, Identity(M), th)))
 # convert(SO3, so3([x,y,z]))
-@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3); e0=identity_element(M); exp(M,e0,hat(M, e0,[x,y,z]))) |> SO3
+@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3); exp_lie(M, hat(M, Identity(M), SA[x;y;z]))) |> SO3
 
 
 function vee!(rv::Vector{<:Real}, alg::so3)
