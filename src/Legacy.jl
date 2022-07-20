@@ -1,7 +1,7 @@
 
 
 
-function skew(v::Array{Float64,1})
+function skew(v::AbstractVector{<:Real})
     S = zeros(3,3)
     S[1,:] = [0., -v[3], v[2]]
     S[2,:] = [v[3],0.,-v[1]]
@@ -15,7 +15,7 @@ const VectorFloatInt = AbstractVector{<:Real} # Union{Vector{Float64},Vector{Int
 
 mutable struct Quaternion
     s::Float64
-    v::Array{Float64,1}
+    v::AbstractVector{<:Real}
     Quaternion() = new()
     Quaternion(s::FloatInt) = new(1.0,zeros(3))
     Quaternion(s::FloatInt,v::VectorFloatInt) = new(s,v)
@@ -26,7 +26,7 @@ Quaternion(v::NTuple{4,Float64}) = Quaternion(v[1],[v[2:4]...])
 
 mutable struct AngleAxis
     theta::Float64
-    ax::Array{Float64,1}
+    ax::AbstractVector{<:Real}
     AngleAxis() = new()
     AngleAxis(s::FloatInt) = new(0,[1;0;0])
     AngleAxis(s::FloatInt,v::VectorFloatInt) = new(s,v)
@@ -142,7 +142,7 @@ end
 
 
 
-function normalize(v::Array{Float64,1})
+function normalize(v::AbstractVector{<:Real})
   return v / fast_norm_TU(v)
 end
 
@@ -528,14 +528,14 @@ end
 #
 # end
 
-function rotate!(q1::Quaternion, v1::Array{Float64,1})
+function rotate!(q1::Quaternion, v1::AbstractVector{<:Real})
     #v = (q1*Quaternion(0.0,v1)*q_conj(q1)).v
     R = convert(SO3, q1);
     v = R.R * v1
     for i = 1:3 v1[i] = v[i] end
     nothing
 end
-function rotate(q1::Quaternion, v1::Array{Float64,1})
+function rotate(q1::Quaternion, v1::AbstractVector{<:Real})
     vv1 = deepcopy(v1)
     rotate!(q1, vv1)
     return vv1
@@ -682,8 +682,11 @@ end
 # rem(-7pi, 2pi)
 # rem(-pi, 2pi)
 
-R(th::Real) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) = convert(SO3, so3([x,y,z]))
+# = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
+@deprecate R(th::Real) _Rot.RotMatrix2(th).mat 
+# convert(SO3, so3([x,y,z]))
+@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3); e0=identity_element(M); exp(M,e0,hat(M, e0,[x,y,z]))) |> SO3
+
 
 function vee!(rv::Vector{<:Real}, alg::so3)
   rv[1] = -alg.S[2,3]
