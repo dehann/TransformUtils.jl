@@ -93,13 +93,13 @@ end
 # we must use
 # seVec = Manifolds.hat(M, coords)
 
-function ⊕(p::SE, X::ProductRepr)
+function ⊕(p::SE, X)
     M = manifold(p)
     e = identity(M, p.p)
     typeof(p)(compose(M, p.p, exp(M, e, X)))
 end
 
-⊕(X::ProductRepr, p::SE) =  typeof(p)(compose(manifold(p), exp(manifold(p), I_SO2, X), p.p))
+⊕(X, p::SE) =  typeof(p)(compose(manifold(p), exp(manifold(p), I_SO2, X), p.p))
 
 # I_SO2 = ProductRepr(SA[0.0, 0.0], SA[1.0 0.0; 0 1.0]);
 
