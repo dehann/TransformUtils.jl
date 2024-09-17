@@ -114,4 +114,26 @@ end
 
 ##
 
+Adjoint(R::SO3) = R.R
+adjoint(X::so3) = X
+
+# https://math.stackexchange.com/q/3488949
+function Adjoint(H::SE3)
+  Ad = zeros(6,6)
+  Ad[1:3,1:3] = H.R.R
+  Ad[4:6,4:6] = H.R.R
+  Ad[4:6,1:3] = skew(H.t)*R
+  return Ad
+end
+
+function adjoint(Xrate::se3)
+  ad = zeros(6,6)
+  Tw = skew(Xrate[1:3])
+  Om = skew(Xrate[4:6])
+  ad[1:3,1:3] = Om
+  ad[4:6,4:6] = Om
+  ad[4:6,1:3] = Tw
+  return ad
+end
+
 #
