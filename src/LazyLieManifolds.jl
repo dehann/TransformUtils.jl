@@ -17,7 +17,7 @@ export se, SE
 """
     $TYPEDEF
 
-Lie Group representation for `Manifolds.SpecialEuclidean(N)`
+Lie Group representation for `LieGroups.SpecialEuclideanGroup(N)`
 
 Related
 
@@ -35,18 +35,18 @@ function SE(R::Matrix{T}, t::Vector{T}) where T<:Real
     _t = SVector{N}(t)
     _R = SMatrix{N,N}(R)
 
-    p = ProductRepr(_t, _R)
+    p = ArrayPartition(_t, _R)
     
     return SE{N, typeof(P)}(p)
 end
 
-manifold(::SE{N,T}) where {N,T} = SpecialEuclidean(N)
+manifold(::SE{N,T}) where {N,T} = SpecialEuclideanGroup(N)
 
 
 function _identity_SE(N::Int, ::Type{T}=Float64) where {T<:Real}
   p1 = zeros(SVector{N, T})
   p2 = SMatrix{N,N,T}(one(T)I)
-  o = ProductRepr(p1, p2)
+  o = ArrayPartition(p1, p2)
   SE{N, typeof(o)}(o)
 end
 
@@ -54,7 +54,7 @@ end
 """
     $TYPEDEF
 
-Lie algebra representation for `Manifolds.SpecialEuclidean(N)`
+Lie algebra representation for `LieGroups.SpecialEuclideanGroup(N)`
 
 Related
 
@@ -70,24 +70,22 @@ function se(X::Vector)
     N = length(X)
     
     for D in 2:3
-        if manifold_dimension(SpecialEuclidean(D)) == N
-            M = SpecialEuclidean(D)
-            e = _identity_SE(D, eltype(X)).p
-            _X = hat(M, e, X)
-        
+        if manifold_dimension(SpecialEuclideanGroup(D)) == N
+            M = SpecialEuclideanGroup(D)
+            _X = hat(LieAlgebra(M), X)
             return se{D, typeof(_X)}(_X)
         end
     end
     error("Only se(2) and se(3) suppored")
 end
 
-manifold(::se{N,T}) where {N,T} = SpecialEuclidean(N)
+manifold(::se{N,T}) where {N,T} = SpecialEuclideanGroup(N)
 
 # p0 = SE([1.0 0.0; 0 1.0], [0.0, 0.0])
 
 function ManifoldsBase.vee(X::se) 
-    M = manifold(se)
-    return vee(M, Identity(M, X.X), X.X)
+    M = manifold(X)
+    return vee(LieAlgebra(M), X.X)
 end 
 
 # we must use
@@ -95,11 +93,10 @@ end
 
 function ⊕(p::SE, X)
     M = manifold(p)
-    e = identity(M, p.p)
-    typeof(p)(compose(M, p.p, exp(M, e, X)))
+    typeof(p)(exp(M, p.p, X))
 end
 
-⊕(X, p::SE) =  typeof(p)(compose(manifold(p), exp(manifold(p), I_SO2, X), p.p))
+⊕(X, p::SE) =  typeof(p)(compose(manifold(p), exp(manifold(p), X), p.p))
 
 # I_SO2 = ProductRepr(SA[0.0, 0.0], SA[1.0 0.0; 0 1.0]);
 

@@ -6,14 +6,14 @@ version = "0.2.19"
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+LieGroups = "6774de46-80ba-43f8-ba42-e41071ccfc5f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Manifolds = "1cead3c2-87b3-11e9-0ccd-23c62b72b94e"
 ManifoldsBase = "3362f125-f0bb-47a3-aa74-596ffd7ef2fb"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 DocStringExtensions = "0.8, 0.9"
-Manifolds = "0.10"
+LieGroups = "0.1.3"
 ManifoldsBase = "0.15, 1"
 StaticArrays = "1"
 julia = "1"

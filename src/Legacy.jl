@@ -683,9 +683,9 @@ end
 # rem(-pi, 2pi)
 
 # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-@deprecate R(th::Real) (M=SpecialOrthogonal(2); exp_lie(M, hat(M, Identity(M), th)))
+@deprecate R(th::Real) (M=SpecialOrthogonalGroup(2); exp(M, hat(LieAlgebra(M), th)))
 # convert(SO3, so3([x,y,z]))
-@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3); exp_lie(M, hat(M, Identity(M), SA[x;y;z]))) |> SO3
+@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonalGroup(3); exp(M, hat(LieAlgebra(M), SA[x;y;z]))) |> SO3
 
 
 function vee!(rv::Vector{<:Real}, alg::so3)

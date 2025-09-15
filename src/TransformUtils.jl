@@ -4,7 +4,7 @@ module TransformUtils
 
 using LinearAlgebra
 using ManifoldsBase
-using Manifolds
+using LieGroups
 using StaticArrays
 using DocStringExtensions
 

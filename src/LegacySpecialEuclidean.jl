@@ -17,11 +17,12 @@
 #   return SE2(R.R*b.R, vec(a.R.R*b.t + a.t))
 # end
 
-function SE2(X::AbstractArray{P,1}) where P <: Real
+function SE2(c::AbstractArray{P,1}) where P <: Real
+    G = SpecialOrthogonalGroup(2)
     T = Matrix{P}(LinearAlgebra.I, 3,3)
-    T[1:2,1:2] = R(X[3])
-    T[1,3] = X[1]
-    T[2,3] = X[2]
+    T[1:2,1:2] = exp(G, hat(LieAlgebra(G), [c[3]]))
+    T[1,3] = c[1]
+    T[2,3] = c[2]
     return T
 end
 
