@@ -2,7 +2,7 @@ name = "TransformUtils"
 uuid = "9b8138ad-1b09-5408-aa39-e87ed6d21b63"
 keywords = ["coordinates", "reference frames", "SE2", "SO3", "quaternion", "robotics", "navigation"]
 desc = "Handy coordinate transformation tools between various conventions."
-version = "0.2.19"
+version = "0.2.20"
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
